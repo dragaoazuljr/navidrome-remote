@@ -1,0 +1,20 @@
+# fake-mpv-sink.service — MOCK do mpv para C1 (dev-workspace)
+# Mesma socket/protocol; em C1 não há mpv nem dispositivo de áudio
+# (spec v1.2: "SEM validação de áudio"). 2W usa navidrome-remote-mpv.service.
+[Unit]
+Description=Navidrome Remote — fake mpv IPC sink (C1 mock)
+After=local-fs.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/navidrome-remote/env
+User=navidrome-remote
+Group=navidrome-remote
+WorkingDirectory=/opt/navidrome-remote
+ExecStart=/usr/bin/python3 /opt/navidrome-remote/tools/fake_mpv_sink.py --socket ${NVRA_MPV_SOCKET}
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

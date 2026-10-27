@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+.svn/
+swarm/
+docs/reports/spy-*.ndjson

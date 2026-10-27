@@ -1,0 +1,29 @@
+# navidrome-remote.service — O serviço único (proxy + /api/v1/* + bridge.js)
+# Instalação: B2 (2W) e C1 (dev-ws). Restart=always exigido pela spec.
+#
+# Rota (P1/P2), socket IPC, spy e credenciais: EnvironmentFile abaixo.
+[Unit]
+Description=Navidrome Remote — transparent proxy + bridge.js + /api/v1 (serviço único)
+Documentation=https://github.com/dragaoazuljr/navidrome-remote
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/navidrome-remote/env
+User=navidrome-remote
+Group=navidrome-remote
+WorkingDirectory=/opt/navidrome-remote
+ExecStart=/usr/bin/python3 -m navidrome_remote
+Restart=always
+RestartSec=2
+
+# Hardening (mantém acesso a /dev/shm: o socket IPC mora lá)
+NoNewPrivileges=true
+ProtectHome=read-only
+ProtectSystem=strict
+ReadWritePaths=/var/lib/navidrome-remote
+StateDirectory=navidrome-remote
+
+[Install]
+WantedBy=multi-user.target
