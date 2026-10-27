@@ -72,14 +72,15 @@ Medidos hoje, com método registrado:
    gateway está em **`100.90.124.50:80`** (nginx): `GET /` → `302`
    (`Location: http://navidrome.lan/login?...`) → `GET /login` → **`200`,
    HTML da SPA**. As portas 4533/443 do ts-gw estão fechadas na face tailnet:
-   o caminho funcional é `:80` + `Host: navidrome.lan` (o "redirecionamento
+   o caminho funcional é `:80` + `Host: navidrome.lan` (o "redirecionamen to
    porta 4533" ocorre internamente no gateway → LXC). `OPTIONS` sem sessão na
    rota REST: `401` sem headers CORS (o gateway não sintetiza).
    **Conclusão prática:** para o SBC, o upstream do proxy é o ts-gw via
    tailnet (ou LAN crua quando o segmento permitir) — **variante P2 sem
    daemons novos**; a cláusula A passa a considerar a fronteira
-   "sessão Navidrome + o que o gateway expõe", e a escolha da rota final
-   depende do segmento onde a Go+ estará (§7, decisão D1).
+   "sessão Navidrome + o que o gateway expõe". (Retificado 2026-10-27, D1: a
+   Go+ é terminal de áudio **fora da rede** — a escolha da rota P1/P2 depende
+   do segmento onde o SBC for colocado, não da caixa; §7.)
 3. **Perfil do Pi Zero 2W (candidato a cama de smoke):** aarch64, 4× A53
    (mesma família de núcleo do H616 do 2W — **extrapolação CPU válida**),
    uptime 10 dias, load 0.00; porém **RAM efetiva 415Mi** (firmware antigo
@@ -138,7 +139,7 @@ refazem apenas o que lhes é específico (regressão leve, não smoke completo).
 
 Regras da escada:
 - **R1:** um defeito descoberto em Cn volta a ser coberto por um caso no
-  suíte C1 (regressão), a menos que seja inerente à cama (áudio/DAC).
+  suíte C1 (regressão), a menos que seja inerente à cama (audi o/DAC).
 - **R2:** C2 não é gate de *arquitetura* — vermelhos de protocolo em C2
   indicam incompatibilidade de plataforma e vão a decisão (fix, fallback 1
   ou reassessment), não a retrabalho de M0.
@@ -200,83 +201,40 @@ o "onde/quando".**
   sessão de implementação cai de "primeiro contato com o risco" para
   "montagem + validações de plataforma".
 
-## 7. Decisões em aberto (precisam de resposta no alinhamento)
+## 7. Decisões — RATIFICADAS no alinhamento de 2026-10-27
 
-- **D1 — Segmento da Go+ Play 3 (`.0/24` ou `.1/24`)?** Define a rota final do
-  SBC: P1 (LAN crua `.200:4533`) mantém-se se o SBC cair no `.0`; caso `.1`,
-  a rota é P2 (ts-gw via tailnet `:80` + vhost) e a cláusula A é reformulada
-  para "fronteira = sessão Navidrome + superfície exposta pelo gateway".
-  Afeta: spec v1.2, arquitetura diagramada, e o upstream configurável do
-  proxy (o código já nasce configurável para os dois).
-- **D2 — Janela no Pi Zero 2W:** autorizar (a) pausa do LightDM e (b)
-  habilitação de `zram` durante o M1.V? As 6 câmeras e o Tailscale permanecem
-  intocados em qualquer cenário; rollback scriptizado no fim.
-- **D3 — Mapeamento no board:** o PO adota os IDs/escopos propostos em §8
-  (ou os renomeia) e define a ordem de libertação (sequencial recomendado:
-  NVR-1 → NVR-2 → NVR-3 → NVR-4, com NVR-3 liberável assim que NVR-2 fecha).
-- **D4 — Registro no KB:** após ratificação, atualizo a página
-  `navidrome-remote.md` para spec v1.2 (escada, rota, milestones remapa
-  pados, linha `resource:` com o repo) e deixo a entrada em `kb/log.md`.
-  (Item de execução minha, incluído aqui para ficar registrado no alinhamento.)
+- **D1 — Ratificada com reinterpretação (correção de premissa da spec).** A
+  Go+ Play 3 é um **terminal de áudio fora da rede**: recebe por fio (3,5mm,
+  primário) ou Bluetooth (secundário); não ocupa IP e o item "segmento da
+  Go+" dissolve-se. O que restava na pergunta — a **rota do SBC** — é
+  configurável: dependendo do segmento Wi-Fi onde o SBC for colocado, o
+  upstream é P1 (LAN crua `.200:4533`) ou P2 (ts-gw via tailnet `:80` +
+  vhost), ambos **medidos e operantes** (§3). O objetivo de qualidade torna-se
+  critério explícito de aceite do M2: **caminho primário = lossless** (taxa
+  nativa, sem artefatos — a razão de existir do DAC) e **caminho BT = melhor
+  codec negociado**, documentado pela análise de qualidade de 2026-10-24.
+  A spec v1.2 incorpora essa correção (KB atualizado 2026-10-27).
+- **D2 — Ratificada:** janela M1.V no Pi Zero 2W permite **pausa do LightDM +
+  habilitação de `zram`**. Mediamtx (6 câmeras) e Tailscale permanecem
+  intocados; rollback scriptizado no fim da janela.
+- **D3 — Ratificada:** o PO adota **NVR-1..NVR-4** no board, com libertação
+  sequencial NVR-1 → NVR-2 → NVR-3 → NVR-4 (NVR-3 agenda-se logo após o
+  fecho do NVR-2).
+- **D4 — Ratificada e EXECUTADA:** a página do KB `navidrome-remote.md`
+  passa a **spec v1.2** (escada de testes, rota P1/P2 configurável,
+  milestones remapados, correção D1, `resource:` com o repo) + linha no
+  `kb/log.md` — ambas registradas em 2026-10-27.
 
-## 8. Tarefas propostas para o board (PO cria/edita; eu executo)
+## 10. Próximos passos (pós-alinhamento)
 
-Convention: IDs `NVR-n`; todo item executa no fluxo `hermes-broker`
-(claim por sessão → PR por incremento → merge por você, lane `supervised`).
-Credenciais de serviço do Navidrome entram via `EnvironmentFile` fora do
-repo (invariante de credenciais).
-
-- **NVR-1 — M0′: spike de protocolo no dev-workspace** *(½–1 dia)*
-  Descrição: serviço único esquelético (proxy transparente + injeção
-  `bridge.js` + `/api/v1/*` stub + espião NDJSON + cliente JSON-IPC) e suíte
-  C1 com os 6 critérios de aceite do §6.
-  Depende: nada (claim/fluxo já validado 2026-10-27).
-  Entregas: PR(s) no repo; suíte C1 executável; relatório dos verdes/reds da
-  cláusula B e do mapa OPTIONS/CORS.
-- **NVR-2 — M1: MVP** *(1–2 semanas part-time; N PRs incrementais)*
-  Descrição: transporte completo (`play/pause/next/prev/seek/shuffle/repeat/
-  volume/queue/status`), `bridge.js` definitivo, fila/estado persistentes,
-  gate de sessão; empurrão da URL Subsonic resolvido no servidor (o
-  navegador nunca vê tokens — invariante).
-  Depende: NVR-1. Cada PR traz seus casos no suíte C1.
-- **NVR-3 — M1.V: validação em Pi Zero 2W** *(¼–½ dia, 1 janela)*
-  Descrição: implantar M1 no pi (venv, 2 unidades systemd, `EnvironmentFile`
-  com upstream tailnet-ts-gw); janela de D2; aceite do §6-M1.V; rollback ao
-  final.
-  Depende: NVR-2 (código), D1 (rota/upstream), D2 (autorizações).
-- **NVR-4 — M2: implantação final no Orange Pi Zero 2W + DAC** *(1–2 fins de
-  semana; inicia na chegada do hardware)*
-  Descrição: montagem (imagem 64-bit, IP fixo), serviço único + mpv, DAC
-  USB-C (consumo ≤500mA), 3,5mm → Go+ (primário), BT 5.0 A2DP (fallback),
-  zram/SD por medição de NVR-3, watchdog, logs enxutos, auto-start
-  pós-reboot; regressão do suíte C1 em C3; Definição de Pronto (5 itens)
-  checklist final.
-  Depende: NVR-3 + chegada de 2W e DAC (pareados).
-
-Fora do board (execução do Tech-lead, comunicada neste doc): atualização da
-spec v1.2 no KB (D4) e manutenção da paginação do pipeline (item 4
-conclui com este alinhamento; itens 5/6 passam a referenciar os NVRs).
-
-## 9. Riscos e mitigações
-
-| Risco | Mitigação |
-|---|---|
-| Lease 4h < duração das fases | Ritmo "claim por sessão, PR por incremento" (explícito no §6); estado nunca vive só no filesystem da lease (commit cedo e sempre) |
-| Pi = box de câmaras (disrupção real se algo quebra na janela) | Janela acordada e curta; Tailscale/câmeras intocados; DE pausado (não o mediamtx); rollback scriptizado e testado antes da janela
-
-| RAM 415Mi no pi insuficiente p/ stack + DE | Pausa do DE (~60Mi) libera margem; se ainda apertar, `zram` (D2); último recurso: reduzir resoluções do mediamtx (só com D2 ampliada) |
-| Firmware do pi sub-reporta RAM (415Mi ≠ 1GB) | Não usar números absolutos do pi como gate; usar **tendência de pressão** (antes/depois, curva) — o 2W recém-imagemado dará número fiel no M2 |
-| BT do pi (4.2) gera falsos negativos p/ fallback | BT fora dos gates de M1.V (informativo) — a validação real só no 2W (BT 5.0) |
-| Rota final mudar (D1) após M1 | Upstream do proxy é `EnvironmentFile` (1 linha por cenário: ts-gw `:80`+vhost ou `.200:4533`); suíte C1 parametrizada por upstream — troca sem código |
-| Gateway ts-gw evolui/falha | O proxy é transparente: se o gateway sumisse, a rota `.0/24` crua segue como fallback configurável (D1) |
-
-## 10. Próximos passos (assim que o alinhamento confirmar)
-
-1. (Tech-lead) registro do acordo no KB: spec v1.2 + `kb/log.md` (D4).
-2. (PO) criação/edição das tasks `NVR-1..4` com a ordem de libertação (D3).
-3. (Tech-lead) `workspace-claim` do `NVR-1` no mesmo dia; primeira entrega
-   esperada: PR com o esqueleto + suíte C1 + relatório cláusula B.
-4. (Paralelo, sem gate) user: confirmar segmento da Go+ (D1) e dar luz
-   verde/ajuste nas autorizações de D2.
+1. **(PO)** criar `NVR-1..4` no board conforme §8 (D3 ratificada).
+2. **(Tech-lead)** na libertação do NVR-1: claim e início do M0′ no
+   dev-workspace mesmo dia; primeira entrega = PR com esqueleto + suíte C1 +
+   relatório (verdes/reds da cláusula B, mapa OPTIONS/CORS, uso de WS pelo
+   player v0.64.2).
+3. **(Agendamento)** NVR-3: janela marcada imediatamente após o fecho do
+   NVR-2 (depende do M1 completo + autorizações já ratificadas).
+4. **Hardware** (usuário): chegada do 2W + DAC dispara o NVR-4; até lá o
+   caminho crítico segue sem eles.
 
 _Fim da proposta._
