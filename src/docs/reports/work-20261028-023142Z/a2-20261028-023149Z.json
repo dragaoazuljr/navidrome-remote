@@ -1,0 +1,26 @@
+{
+  "stamp": "20261028-023149Z",
+  "origin": "http://127.0.0.1:8481",
+  "upstream": "192.168.0.200:4533",
+  "vhost": "",
+  "cred_user": "sbc",
+  "steps": {},
+  "anchor": {
+    "in_browser": "0.64.2 (10114574)",
+    "server_ping": "0.64.2 (10114574)"
+  },
+  "login_initial_state": {
+    "formPresent": true,
+    "alreadyLoggedIn": false
+  },
+  "login": {
+    "ok": false,
+    "via": "form",
+    "detail": "form submetido, sessao nao efetivada"
+  },
+  "fatal": "login",
+  "bridge_beacons": {
+    "count": 0,
+    "samples": []
+  }
+}

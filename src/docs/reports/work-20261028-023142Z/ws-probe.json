@@ -1,0 +1,208 @@
+{
+  "probe": "ws_probe-a2",
+  "proxy": "127.0.0.1:8481",
+  "direct": "192.168.0.200:4533",
+  "session_cookie": null,
+  "rows": [
+    {
+      "candidate": "/ws",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/app/ws",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-404",
+        "status": 404,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 19,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-404",
+        "status": 404,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 19
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 404) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/socket.io/?EIO=4&transport=websocket",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/events",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/sse",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/eventstream",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/updates",
+      "local_only": false,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-302",
+        "status": 302,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 28
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 302) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    },
+    {
+      "candidate": "/api/v1/events",
+      "local_only": true,
+      "session_cookie": null,
+      "proxy": {
+        "result": "HTTP-404",
+        "status": 404,
+        "detail": "",
+        "hdrs_subset": {
+          "connection": "close"
+        },
+        "body_len": 272,
+        "echo": null
+      },
+      "direct": {
+        "result": "HTTP-404",
+        "status": 404,
+        "detail": "",
+        "hdrs_subset": {},
+        "body_len": 19
+      },
+      "classify": {
+        "cls": "mirrored",
+        "verdict": "upstream recusa nos dois canais (status 404) — recursão espelhada SEM ROMPIMENTO (não é vermelho nosso)"
+      }
+    }
+  ],
+  "counts": {
+    "green": 0,
+    "mirrored": 8,
+    "broken": 0,
+    "total": 8
+  }
+}
