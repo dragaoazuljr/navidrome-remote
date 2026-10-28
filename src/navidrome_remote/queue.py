@@ -16,14 +16,20 @@ salt or credential is EVER serialized to disk or to a response.
 Apply semantics (engine is the source of truth for PLAYBACK; this
 store is the source of truth for QUEUE INTENT)
 ----------------------------------------------
-* `apply_to_engine()` rebuilds the stream URLs from ids and drives the
-  engine: loadfile(first, "replace") then pl_add for the rest, plus the
+* `apply_to_engine()` delegates to `controller.PlaybackController.
+  apply_queue` (A4): playlist-clear, one `playlist-add <url> <i>
+  <id>` per entry (the mpv entry id carries the Navidrome song id —
+  the reconciliation anchor), `playlist-play <start>`, then the
   mirrored settings (volume / shuffle / repeat loops).
 * It is called by a lazy background task (best effort): it retries
   while the engine is down and stops once acknowledged (the engine's
   ack is the receipt). A failure NEVER propagates into a client
   request — the worst case is a late or missed restore, logged in the
   spy (`store_apply_*`).
+* `find_by_id()` / `mark_selected(persist=True)` back the A4
+  engine->store reconciliation: while a track is active the store's
+  index follows `playlist-current-id` and the agreement is persisted
+  (a service restart never regresses an agreed state).
 """
 
 from __future__ import annotations
@@ -144,10 +150,27 @@ class QueueStore:
         self.pending_restore = False
         self.save()
 
-    def mark_selected(self, idx: "int | None") -> None:
+    def mark_selected(self, idx: "int | None", persist: bool = False) -> None:
+        """Point the intent selector at a queue position.
+
+        `persist=True` (A4 reconciliation path): the agreement with the
+        engine is durable — a service restart must resume from the
+        position the engine was actually serving, not from a stale one.
+        """
         if idx is not None and not (0 <= idx < len(self.items)):
             idx = max(0, len(self.items) - 1) if self.items else None
         self.index = idx
+        if persist:
+            self.save()
+
+    def find_by_id(self, item_id: "str") -> "int | None":
+        """Index of the queue item with this id (A4 reconciliation
+        anchor), or None when the id is not in the queue."""
+        want = str(item_id)
+        for i, it in enumerate(self.items):
+            if it.id == want:
+                return i
+        return None
 
     def step(self, delta: int) -> "int | None":
         if not self.items or self.index is None:
@@ -222,51 +245,18 @@ def _coerce(item: "dict") -> QueueItem:
 
 
 async def apply_to_engine(store: QueueStore, engine, spy: Spy) -> bool:
-    """Rebuild stream URLs from ids and drive the engine.
+    """Apply the store's queue to the engine (A4: delegated to the
+    controller, which owns the id-tagged protocol).
 
-    Best effort by contract: returns True iff the engine acked the first
-    loadfile. Failures log `store_apply_failed` and leave `pending_restore`
-    set (the lazy task retries).
+    Signature retained from A3 (tests and the lazy restore loop call it
+    directly). Best effort by contract: returns True iff the engine
+    acked the whole batch. Failures log `store_apply_failed` and leave
+    `pending_restore` set (the lazy task retries). The blocking IPC
+    work runs off the event loop.
     """
-    from .api import subsonic_stream_url
+    import asyncio
 
-    if not store.items:
-        store.pending_restore = False
-        return True
-    if not (store.cfg.nav_user and store.cfg.nav_pass):
-        await spy.event("store_apply_skipped", reason="sem-credenciais-navidrome",
-                        items=len(store.items))
-        store.pending_restore = False
-        return False
-    try:
-        urls = [
-            subsonic_stream_url(store.cfg.upstream_base_url, it.id,
-                                store.cfg.nav_user, store.cfg.nav_pass)
-            for it in store.items
-        ]
-    except Exception as exc:
-        await spy.event("store_apply_failed", reason="url-build", error=str(exc))
-        return False
-    try:
-        engine.cmd(["loadfile", urls[0], "replace"])
-        for u in urls[1:]:
-            engine.cmd(["playlist-add", u])
-        st = store.settings
-        if st.get("volume") is not None:
-            engine.cmd(["set_property", "volume", float(st["volume"])])
-        engine.cmd(["set_property", "shuffle", int(bool(st.get("shuffle")))])
-        lp = 0
-        lf = 0
-        rep = st.get("repeat") or "off"
-        if rep == "track":
-            lf = -1
-        elif rep == "playlist":
-            lp = -1
-        engine.cmd(["set_property", "loop-playlist", lp])
-        engine.cmd(["set_property", "loop-file", lf])
-    except Exception as exc:
-        await spy.event("store_apply_failed", reason="ipc", error=str(exc))
-        return False
-    store.pending_restore = False
-    await spy.event("store_apply_ok", items=len(urls))
-    return True
+    from .controller import PlaybackController
+
+    ctrl = PlaybackController(store.cfg, spy, engine, store)
+    return await asyncio.to_thread(ctrl.apply_queue)

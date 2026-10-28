@@ -20,9 +20,12 @@ Routes (complete contract, card A3)
 Concrete shapes (M1 contract)
 -----------------------------
   GET /status -> {phase, engine:"connected"|"down", idle,
-                  play:{id,title,pos}|null, playing, paused,
+                  play:{id,title,pos,dur}|null, playing, paused,
                   shuffle:boolean, repeat:"off"|"track"|"playlist",
-                  volume:int|null, queue:{length,index}}
+                  volume:int|null, queue:{length,index,size}}
+        (A4 additive fields: `play.dur` — loaded duration; `queue.size`
+        — the ENGINE's playlist count, so a UI can compare intent vs
+        engine at a glance. Null when unavailable.)
   GET /queue  -> {items:[{id,title?}...], settings:{index,volume,
                   shuffle,repeat}, engine}
   next/prev while the engine is IDLE (no active track) -> 503
@@ -32,6 +35,27 @@ Concrete shapes (M1 contract)
   POST /api/v1/spy       client-side beacon (bridge.js); carries the
                          session `jwt` in the body (sendBeacon cannot set
                          headers — see gateway.L1).
+
+Translation (A4 — /api/v1/* -> stock mpv JSON-IPC)
+-------------------------------------------------
+  The routes validate input HERE, then delegate to
+  controller.PlaybackController, which owns one deterministic command
+  per action:
+    play            loadfile <url> "replace"
+    pause / resume  set_property pause true/false
+    stop            stop
+    next / prev     playlist-next / playlist-prev
+    seek {pos}      seek <effective> "absolute"   (clamped to duration)
+    shuffle {v}     set_property shuffle 0/1     (engine reorders on 0->1)
+    repeat {m}      set_property loop-file / loop-playlist pair
+    volume {lvl}    set_property volume <float>
+    queue (POST)    playlist-clear; playlist-add <url> <i> <id> per entry;
+                    playlist-play <start>; mirrored settings
+    status (GET)    get_properties (observation set) + engine->store
+                    reconciliation on `playlist-current-id`
+  The next/prev RESPONSE index is the store's stepped value (optimistic
+  while shuffling); the FOLLOWING /status call carries the engine-
+  reconciled index — eventual per request, strong via polling.
 
 Authorization (three-layer session gate — see gateway.py)
 ----------------------------------------------------------
@@ -62,6 +86,7 @@ import json
 from urllib.parse import urlencode
 
 from . import NAVIDROME_ANCHOR, SERVICE_VERSION, SUBSONIC_CLIENT_VER
+from .controller import PlaybackController
 from .ipc import EngineDown
 from .queue import MAX_ITEMS, QueueStore, StoreError
 from .spy import Spy
@@ -91,13 +116,14 @@ def subsonic_stream_url(upstream_base: str, song_id: str, user: str, password: s
     return f"{upstream_base}/rest/stream?{urlencode(params)}"
 
 
-REPEAT_MODES = {
-    "off": ("off", 0, 0),
-    "track": ("track", -1, 0),
-    "playlist": ("playlist", 0, -1),
-    # aliases (Navidrome UI spelling)
-    "all": ("playlist", 0, -1),
-    "one": ("track", -1, 0),
+# A4: alias -> normalized mode. The (loop-file, loop-playlist) EXECUTION
+# pair lives in controller.REPEAT_PLAN — one definition, one translator.
+REPEAT_ALIASES = {
+    "off": "off",
+    "track": "track",
+    "playlist": "playlist",
+    "all": "playlist",      # Navidrome UI spelling
+    "one": "track",
 }
 
 
@@ -132,6 +158,7 @@ class Api:
         if store is None:
             store = QueueStore(cfg, spy)
         self.store = store
+        self.controller = PlaybackController(cfg, spy, engine, self.store)
         if gateway is None:
             from .gateway import SessionGate
             gateway = SessionGate(cfg, spy)
@@ -236,7 +263,7 @@ class Api:
                 return _json(503, {"error": "engine-idle",
                                    "detail": "motor ocioso — nenhuma faixa ativa"})
             self.store.step(1)
-            await self._ipc(["playlist-next"])
+            await asyncio.to_thread(self.controller.next)
             return _json(200, {"ok": True, "index": self.store.index})
         if method == "POST" and path in ("/api/v1/prev", "/api/v1/previous"):
             if not await self._engine_has_track():
@@ -244,10 +271,11 @@ class Api:
                 return _json(503, {"error": "engine-idle",
                                    "detail": "motor ocioso — nenhuma faixa ativa"})
             self.store.step(-1)
-            await self._ipc(["playlist-prev"])
+            await asyncio.to_thread(self.controller.prev)
             return _json(200, {"ok": True, "index": self.store.index})
         if method == "POST" and path == "/api/v1/stop":
-            return await self._one_cmd("stop")
+            await asyncio.to_thread(self.controller.stop)
+            return _json(200, {"ok": True, "cmd": "stop"})
         if method == "POST" and path == "/api/v1/seek":
             return await self._seek(payload)
         if method == "POST" and path == "/api/v1/shuffle":
@@ -299,10 +327,10 @@ class Api:
                 "volume": None,
                 "queue": self._queue_view(False),
             })
-        props = await asyncio.to_thread(self.engine.get_properties, [
-            "idle", "playback-status", "time-pos", "media-title",
-            "shuffle", "loop-file", "loop-playlist", "volume",
-        ])
+        # A4: batched observation + engine->store reconciliation live
+        # in the controller; the response shape stays the M1 contract,
+        # plus the additive `play.dur` / `queue.size` fields.
+        props = await asyncio.to_thread(self.controller.snapshot)
         idle = props.get("idle")
         idle = True if idle is None else bool(idle)
         paused = (props.get("playback-status") == "paused")
@@ -312,6 +340,10 @@ class Api:
             vol_i = int(round(float(vol)))
         except (TypeError, ValueError):
             vol_i = None
+        try:
+            qsize = int(props.get("playlist-count") or 0) or None
+        except (TypeError, ValueError):
+            qsize = None
         return _json(200, {
             "phase": PHASE,
             "engine": "connected",
@@ -324,7 +356,7 @@ class Api:
             "repeat": self._repeat_from_loops(
                 props.get("loop-file"), props.get("loop-playlist")),
             "volume": vol_i,
-            "queue": self._queue_view(False),
+            "queue": self._queue_view(False, engine_size=qsize),
         })
 
     def _describe_current(self, props: dict, active: bool) -> "dict | None":
@@ -336,8 +368,18 @@ class Api:
         pid = None
         items = self.store.items
         idx = self.store.index
-        if items and isinstance(idx, int) and 0 <= idx < len(items):
-            cur = items[idx]
+        # A4: the engine is the source of truth while a track is
+        # active — its current id (the song id the controller tags on
+        # every playlist entry) outranks the store's pointer, which
+        # can lag a shuffle.
+        cid = props.get("playlist-current-id")
+        hit = None
+        if isinstance(cid, str) and cid:
+            hit = self.store.find_by_id(cid)
+        if hit is None:
+            hit = idx if isinstance(idx, int) else None
+        if items and isinstance(hit, int) and 0 <= hit < len(items):
+            cur = items[hit]
             title = cur.title or title
             pid = cur.id
         pos = props.get("time-pos")
@@ -345,7 +387,12 @@ class Api:
             pos = float(pos) if pos is not None else None
         except (TypeError, ValueError):
             pos = None
-        return {"id": pid, "title": title, "pos": pos}
+        dur = props.get("duration")
+        try:
+            dur = float(dur) if dur is not None else None
+        except (TypeError, ValueError):
+            dur = None
+        return {"id": pid, "title": title, "pos": pos, "dur": dur}
 
     async def _queue_get(self):
         view = self._queue_view(with_items=True)
@@ -355,9 +402,11 @@ class Api:
         view["engine"] = self._engine_state()
         return _json(200, view)
 
-    def _queue_view(self, with_items: bool) -> dict:
+    def _queue_view(self, with_items: bool,
+                    engine_size: "int | None" = None) -> dict:
         if not with_items:
-            return {"length": len(self.store.items), "index": self.store.index}
+            return {"length": len(self.store.items),
+                    "index": self.store.index, "size": engine_size}
         return self.store.safe_snapshot()
 
     async def _queue_post(self, payload: dict):
@@ -415,7 +464,7 @@ class Api:
                 self.cfg.upstream_base_url, str(song_id),
                 self.cfg.nav_user, self.cfg.nav_pass,
             )
-        await self._ipc(["loadfile", str(url), "replace"])
+        await asyncio.to_thread(self.controller.play, url)
         if kind == "id":
             self.store.note_replacement({"id": str(song_id), "title": title})
         else:
@@ -427,12 +476,8 @@ class Api:
         return _json(200, {"ok": True, "kind": kind})
 
     async def _toggle_pause(self, value: bool):
-        await self._ipc(["set_property", "pause", bool(value)])
+        await asyncio.to_thread(self.controller.pause, bool(value))
         return _json(200, {"ok": True, "pause": bool(value)})
-
-    async def _one_cmd(self, name: str):
-        await self._ipc([name])
-        return _json(200, {"ok": True, "cmd": name})
 
     async def _seek(self, payload: dict):
         pos = payload.get("pos", payload.get("position"))
@@ -444,8 +489,8 @@ class Api:
             return _json(400, {"error": "'pos' inválido"})
         if pos < 0:
             return _json(400, {"error": "'pos' negativo"})
-        await self._ipc(["set_property", "time-pos", pos])
-        return _json(200, {"ok": True, "pos": pos})
+        eff = await asyncio.to_thread(self.controller.seek, pos)
+        return _json(200, {"ok": True, "pos": eff})
 
     async def _shuffle(self, payload: dict):
         val = payload.get("value")
@@ -453,19 +498,17 @@ class Api:
             cur = await self._prop_or_zero("shuffle")
             val = int(not cur)
         val = int(bool(val))
-        await self._ipc(["set_property", "shuffle", val])
+        await asyncio.to_thread(self.controller.shuffle, val)
         self.store.touch_settings(shuffle=bool(val))
         return _json(200, {"ok": True, "enabled": bool(val)})
 
     async def _repeat(self, payload: dict):
         mode_raw = str(payload.get("mode", "off")).lower()
-        spec = REPEAT_MODES.get(mode_raw)
-        if spec is None:
+        norm = REPEAT_ALIASES.get(mode_raw)
+        if norm is None:
             return _json(400, {"error": "'mode' inválido",
                                "valid": ["off", "track", "playlist"]})
-        norm, loop_file, loop_pl = spec
-        await self._ipc(["set_property", "loop-file", loop_file])
-        await self._ipc(["set_property", "loop-playlist", loop_pl])
+        await asyncio.to_thread(self.controller.repeat, norm)
         self.store.touch_settings(repeat=norm)
         return _json(200, {"ok": True, "mode": norm})
 
@@ -479,7 +522,7 @@ class Api:
             return _json(400, {"error": "'level' inválido"})
         if not 0 <= level <= 100:
             return _json(400, {"error": "'level' fora de 0..100"})
-        await self._ipc(["set_property", "volume", level])
+        await asyncio.to_thread(self.controller.volume, level)
         self.store.touch_settings(volume=int(level))
         return _json(200, {"ok": True, "level": int(level)})
 
@@ -498,24 +541,11 @@ class Api:
 
     async def _engine_has_track(self) -> bool:
         """Alive AND serving a track (idle engines answer next/prev with
-        503 by contract — a kiosk command cannot ride a stopped engine)."""
-        try:
-            if not self.engine.alive:
-                return False
-        except Exception:
-            return False
-        try:
-            props = await asyncio.to_thread(self.engine.get_properties,
-                                            ["idle", "playlist-size"])
-        except (EngineDown, RuntimeError):
-            return False
-        idle = props.get("idle")
-        idle = True if idle is None else bool(idle)
-        try:
-            ps = int(props.get("playlist-size") or 0)
-        except (TypeError, ValueError):
-            ps = 0
-        return (not idle) and (ps > 0)
+        503 by contract — a kiosk command cannot ride a stopped
+        engine). A4: the check itself (alive + not-idle +
+        playlist-count > 0) lives in the controller; this wrapper
+        keeps it off the event loop."""
+        return await asyncio.to_thread(self.controller.active_with_track)
 
     def _repeat_from_loops(self, loop_file, loop_pl) -> str:
         try:
@@ -535,6 +565,3 @@ class Api:
         except (EngineDown, RuntimeError):
             return 0
 
-    async def _ipc(self, cmd_args) -> None:
-        """Deterministic engine call (see M0' docs)."""
-        await asyncio.to_thread(self.engine.cmd, *cmd_args)

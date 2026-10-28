@@ -251,6 +251,34 @@ class Spy:
             except OSError as exc:
                 print(f"[spy] falha gravando {self.path}: {exc}", file=sys.stderr)
 
+    def event_sync(self, kind: str, **fields) -> None:
+        """Same event as `event()`, from a NON-async context (A4: the
+        playback controller drives the engine from worker threads).
+        Concurrent writers cannot corrupt the audit file: each event is
+        a single O_APPEND write under one fd, and POSIX makes writes
+        this small atomic on the same file."""
+        if not self.enabled:
+            return
+        _redact_fields(fields)
+        rec = {"ts": ts_iso(), "event": kind}
+        rec.update(fields)
+        try:
+            line = json.dumps(rec, separators=(",", ":"),
+                              ensure_ascii=False)
+        except (TypeError, ValueError) as exc:
+            print(f"[spy] evento inserializável ({kind}): {exc}", file=sys.stderr)
+            return
+        try:
+            fd = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT,
+                         0o644)
+            try:
+                os.write(fd, (line + "\n").encode())
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        except OSError as exc:
+            print(f"[spy] falha gravando {self.path}: {exc}", file=sys.stderr)
+
     # ------------------------------------------------------------- helpers
     @staticmethod
     def cookie_names(cookie_header: "str | None") -> "list[str]":
