@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
 """Mock mpv IPC sink — the C1 stand-in for the real playback engine.
 
-Speaks the same mpv JSON-IPC protocol as real mpv (newline-delimited JSON
-over an AF_UNIX datagram socket) so that navidrome_remote.ipc.MpvEngine is
-exercised byte-for-byte on the dev-workspace, where neither mpv nor an audio
-device exists (C1 per spec v1.2: "SEM validação de áudio").
+Speaks the same mpv JSON-IPC protocol as real mpv (newline-delimited
+JSON over an AF_UNIX datagram socket) so that navidrome_remote.ipc.
+MpvEngine is exercised byte-for-byte on the dev-workspace, where
+neither mpv nor an audio device exists (C1 per spec v1.2: "SEM
+validação de áudio").
 
 Usage:
   python3 tools/fake_mpv_sink.py --socket /dev/shm/navidrome-remote-mock-ipc
 
 Behaviors emulated:
-  * get_version; get_property (single name, list of names → dict data);
-  * set_property (pause, volume, time-pos, ...);
-  * loadfile <url> [replace] — starts "playback" (ticker advances time-pos);
-  * playlist-next / playlist-prev / stop / quit;
-  * events: idle-state flips and property-change (time-pos), like real mpv.
+  * get_version; get_property (single name, list of names -> dict);
+  * set_property (pause, volume, time-pos, shuffle, loop-file,
+    loop-playlist, ...);
+  * loadfile <uri> [replace|append] — playlist-aware (M1):
+      replace   -> items=[uri], play index 0
+      append    -> items += [uri], play last
+      default   -> play uri at current position (seed playlist if empty)
+  * pl_add / playlist-add [index], pl_clear / playlist-clear,
+    pl_play / playlist-play, playlist-move, playlist-delete;
+  * playlist-next / playlist-prev — playlist aware (loop-playlist wraps,
+    end-of-list stops like real mpv) with the M0' single-file legacy
+    behaviour preserved for an empty playlist;
+  * stop / quit;
+  * events: idle-state flips, file-loaded, property-change (time-pos).
 
 On 2W/C3 this program is simply replaced by:
   mpv --idle=yes --really-quiet --input-ipc-server=<same socket>
@@ -31,7 +41,7 @@ import threading
 import time
 
 
-VERSION = "0.1.0-fake-mpv-sink"
+VERSION = "0.2.0-fake-mpv-sink"
 
 
 class State:
@@ -41,8 +51,13 @@ class State:
         self.volume = 100.0
         self.time_pos = 0.0
         self.media_title = ""
-        self.playlist_index = 0
         self.current_url = ""
+        # M1: playlist model
+        self.items: "list[str]" = []
+        self.pl_idx = 0
+        self.shuffle = 0
+        self.loop_file = 0
+        self.loop_playlist = 0
 
     def playing(self) -> bool:
         return not self.idle and not self.pause_flag
@@ -51,6 +66,11 @@ class State:
         if self.idle:
             return "stopped"
         return "paused" if self.pause_flag else "playing"
+
+    @staticmethod
+    def _title_of(uri: str) -> str:
+        base = uri.split("?", 1)[0].rsplit("/", 1)[-1]
+        return base or uri[:64]
 
     def snapshot(self) -> dict:
         return {
@@ -61,12 +81,20 @@ class State:
             "volume": self.volume,
             "time-pos": round(self.time_pos, 3),
             "media-title": self.media_title,
-            "playlist-index": self.playlist_index,
+            "playlist-size": len(self.items),
+            "playlist-index": self.pl_idx,
             "filename": self.current_url,
+            "shuffle": self.shuffle,
+            "loop-file": self.loop_file,
+            "loop-playlist": self.loop_playlist,
         }
 
 
 KNOWN_PROPS = set(State().snapshot().keys())
+
+# mpv property name (dash spelling) -> State field (underscore spelling),
+# for writable properties that have no explicit assignment branch above.
+PROP_FIELDS = {"loop-file": "loop_file", "loop-playlist": "loop_playlist"}
 
 
 class Sink:
@@ -76,8 +104,8 @@ class Sink:
         self.state = State()
         self.stop = threading.Event()
         self.lock = threading.Lock()
-        self.peers: "set" = set()  # senders we know (real mpv multicasts to registered viewers)
-        self.sock: "socket.socket | None" = None
+        self.peers: "set" = set()
+        self.sock: "socket | None" = None
 
     def start(self) -> None:
         if os.path.exists(self.socket_path):
@@ -126,6 +154,15 @@ class Sink:
             except OSError:
                 self.peers.discard(peer)
 
+    def _load_uri(self, uri: str) -> None:
+        st = self.state
+        st.idle = False
+        st.current_url = uri
+        st.time_pos = 0.0
+        st.media_title = State._title_of(uri)
+        self._emit({"event": "file-loaded", "filename": uri,
+                    "media-title": st.media_title})
+
     # --------------------------------------------------------------- dispatch
     def _dispatch(self, raw: bytes, peer) -> None:
         for line in raw.decode(errors="replace").split("\n"):
@@ -138,9 +175,6 @@ class Sink:
                 continue
             if "command" not in msg:
                 continue
-            # CPython yields NO sender address for AF_UNIX datagrams (real mpv
-            # uses C recvmsg, which does), so our client declares the reply
-            # target in-band via `nvr-reply-to` — ignored by real mpv.
             target = msg.get("nvr-reply-to")
             if target:
                 self.peers.add(target)
@@ -154,7 +188,7 @@ class Sink:
                 return
             dst = target or peer
             if not dst:
-                return  # no address recoverable; nothing to do
+                return
             try:
                 self.sock.sendto(data, dst)
             except OSError:
@@ -193,19 +227,26 @@ class Sink:
             if len(cmd) < 3:
                 return "error", {}
             name, val = str(cmd[1]), cmd[2]
-            if name not in KNOWN_PROPS or name in ("playback-status", "media-title", "playlist-index", "filename"):
+            if name not in KNOWN_PROPS or name in ("playback-status", "media-title",
+                                                   "playlist-index", "filename",
+                                                   "playlist-size", "idle",
+                                                   "core-idle"):
                 return "error", {"error": "property-not-found"}
             if isinstance(val, bool):
-                if name == "pause":
-                    st.pause_flag = val
-                elif name == "idle":
-                    st.idle = val
-                else:
-                    return "error", {"error": "readonly-property"}
+                val = int(val)
+            if name == "pause":
+                st.pause_flag = bool(val)
             elif name == "volume":
                 st.volume = float(val)
             elif name == "time-pos":
                 st.time_pos = float(val)
+            elif name == "shuffle":
+                st.shuffle = int(bool(val))
+            elif name in PROP_FIELDS:
+                # mpv spells these with dashes; the State fields use
+                # underscores — a bare setattr(name) would create a dead
+                # dict key that snapshot() never reads.
+                setattr(st, PROP_FIELDS[name], int(val))
             else:
                 return "error", {"error": "readonly-property"}
             return "success", {}
@@ -213,26 +254,106 @@ class Sink:
         if head == "loadfile":
             if len(cmd) < 2:
                 return "error", {}
-            url = str(cmd[1])
+            uri = str(cmd[1])
+            flag = str(cmd[2]) if len(cmd) > 2 else ""
             was_idle = st.idle
-            st.idle = False
-            st.current_url = url
-            st.time_pos = 0.0
-            base = url.split("?", 1)[0].rsplit("/", 1)[-1]
-            st.media_title = base or url[:64]
+            if flag == "replace":
+                st.items = [uri]
+                st.pl_idx = 0
+            elif flag == "append":
+                st.items.append(uri)
+                st.pl_idx = len(st.items) - 1
+            else:  # default: play at current position
+                if not st.items:
+                    st.items = [uri]
+                    st.pl_idx = 0
+                elif 0 <= st.pl_idx < len(st.items):
+                    st.items[st.pl_idx] = uri
+                else:
+                    st.items.append(uri)
+                    st.pl_idx = len(st.items) - 1
+            self._load_uri(uri)
             if was_idle:
                 self._emit({"event": "idle", "idle": False})
-            self._emit({"event": "file-loaded", "filename": url, "media-title": st.media_title})
+            return "success", {}
+
+        if head in ("pl_add", "playlist-add"):
+            if len(cmd) < 2:
+                return "error", {}
+            uri = str(cmd[1])
+            if len(cmd) > 2 and isinstance(cmd[2], int):
+                idx = max(0, min(cmd[2], len(st.items)))
+                st.items.insert(idx, uri)
+            else:
+                st.items.append(uri)
+            return "success", {}
+
+        if head in ("pl_clear", "playlist-clear"):
+            st.items = []
+            st.pl_idx = 0
+            return "success", {}
+
+        if head in ("pl_play", "playlist-play"):
+            if len(cmd) < 2 or not isinstance(cmd[1], int) or not st.items:
+                return "error", {"error": "no-playlist"}
+            idx = max(0, min(int(cmd[1]), len(st.items) - 1))
+            st.pl_idx = idx
+            self._load_uri(st.items[idx])
+            return "success", {}
+
+        if head == "playlist-move":
+            if (len(cmd) < 3 or not isinstance(cmd[1], int)
+                    or not isinstance(cmd[2], int) or not st.items):
+                return "error", {}
+            a, b = cmd[1], cmd[2]
+            if not (0 <= a < len(st.items)):
+                return "error", {}
+            uri = st.items.pop(a)
+            st.items.insert(max(0, min(b, len(st.items))), uri)
+            return "success", {}
+
+        if head == "playlist-delete":
+            if len(cmd) < 2 or not isinstance(cmd[1], int) or not st.items:
+                return "error", {}
+            idx = cmd[1]
+            if not (0 <= idx < len(st.items)):
+                return "error", {}
+            st.items.pop(idx)
+            if st.pl_idx >= len(st.items):
+                st.pl_idx = max(0, len(st.items) - 1)
             return "success", {}
 
         if head in ("playlist-next", "playlist-prev"):
-            if st.idle:
+            if st.idle and not st.items:
+                # M0' legacy: engine not loaded at all
                 return "error", {"error": "no-playlist"}
+            n = len(st.items)
+            if n == 0:
+                # M0' legacy single-file path (items not seeded)
+                delta = 1 if head == "playlist-next" else -1
+                st.pl_idx = max(0, st.pl_idx + delta)
+                st.time_pos = 0.0
+                if st.media_title:
+                    st.media_title = f"{st.media_title} (#{st.pl_idx})"
+                return "success", {}
             delta = 1 if head == "playlist-next" else -1
-            st.playlist_index = max(0, st.playlist_index + delta)
-            st.time_pos = 0.0
-            if st.media_title:
-                st.media_title = f"{st.media_title} (#{st.playlist_index})"
+            nxt = st.pl_idx + delta
+            if delta > 0:
+                if nxt >= n:
+                    if st.loop_playlist < 0:
+                        nxt = 0
+                    else:
+                        # end of playlist, no loop: mpv stops (goes idle)
+                        st.idle = True
+                        st.pause_flag = False
+                        st.time_pos = 0.0
+                        self._emit({"event": "idle", "idle": True})
+                        return "success", {}
+            else:
+                if nxt < 0:
+                    nxt = 0 if st.loop_playlist >= 0 else n - 1
+            st.pl_idx = nxt
+            self._load_uri(st.items[nxt])
             return "success", {}
 
         if head == "stop":
@@ -240,7 +361,6 @@ class Sink:
                 st.idle = True
                 st.pause_flag = False
                 st.time_pos = 0.0
-                st.current_url = ""
                 self._emit({"event": "idle", "idle": True})
             return "success", {}
 

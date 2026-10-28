@@ -14,6 +14,11 @@ Routes offered (all on one port, per path):
   GET  /opts/           -> 200 (ACAO/ACAM/ACAH) for OPTIONS too
   POST /login           -> 200 + Set-Cookie: nd_session=SEKRET; Path=/; HttpOnly
   GET  /rest/ping       -> 200 with Cookie, 401 without   (session mechanics)
+  GET  /rest/getIndexes -> Subsonic probe endpoint (M1 gate): 200 for a
+                             recognized session (u/t, JWT, cookie), 401
+                             code-40 otherwise; probe_route_404=True makes
+                             it vanish entirely (anchor-break FAIL-CLOSED
+                             test)
   GET  /ws              -> RFC6455 echo (prepends "echo:") (cláusula B i)
 
 The document served contains `<head><title>FakeNav</title></head>` so the
@@ -26,6 +31,8 @@ import asyncio
 import base64
 import gzip
 import hashlib
+import json
+from urllib.parse import parse_qsl
 
 from navidrome_remote.http1 import read_head, read_request_body
 
@@ -39,12 +46,21 @@ WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
 class FakeUpstream:
-    def __init__(self):
+    def __init__(self, subsonic_users=None, subsonic_jwts=None,
+                 cookie_sessions=None, probe_route_404=False):
         self.host = "127.0.0.1"
         self.port = 0
         self.authority = ""
         self._server = None
         self.requests = []  # (method, path, {headers}) — for assertion
+        # M1: credential tables for the /rest/getIndexes probe endpoint.
+        # subsonic_users: user -> expected t (md5(password+salt))
+        # subsonic_jwts:  set of JWT strings the upstream recognizes
+        # cookie_sessions: cookie VALUE -> identity (opaque forward channel)
+        self.subsonic_users = subsonic_users or {}
+        self.subsonic_jwts = set(subsonic_jwts or ())
+        self.cookie_sessions = cookie_sessions or {}
+        self.probe_route_404 = probe_route_404
 
     async def start(self):
         self._server = await asyncio.start_server(self._on, self.host, 0)
@@ -156,6 +172,8 @@ class FakeUpstream:
                     )
                 ],
             )
+        if rq.method == "GET" and p == "/rest/getIndexes":
+            return self._handle_get_indexes(rq)
         if rq.method == "GET" and p == "/rest/ping":
             ck = rq.headers.get_first("cookie") or ""
             if f"nd_session={SESSION_COOKIE_VALUE}" in ck:
@@ -188,6 +206,56 @@ class FakeUpstream:
                 b"upgrade-refused",
             )
         return self._reply(404, [("content-type", "text/plain")], b"not-found-fake")
+
+    # ------------------------------------------------------------ getIndexes
+    def _handle_get_indexes(self, rq):
+        """Subsonic liveness probe used by the M1 session gate.
+
+        Recognition mirrors the v0.64.2 contract observed in A2:
+        u/t/s query params, a JWT (query or Authorization header), or an
+        opaque cookie. Valid -> 200 {"success": true}; invalid -> 401 with
+        Subsonic code 40; probe_route_404 -> the route disappears (404),
+        simulating the anchor break."""
+        if self.probe_route_404:
+            return self._reply(
+                404,
+                [("content-type", "application/json")],
+                b"{}")
+        qs = rq.target.split("?", 1)[1] if "?" in rq.target else ""
+        params = dict(parse_qsl(qs))
+        ok = False
+        jwt = params.get("jwt")
+        if not jwt:
+            auth = rq.headers.get_first("authorization") or ""
+            if auth.lower().startswith("bearer "):
+                jwt = auth[len("bearer "):].strip()
+        if jwt:
+            ok = jwt in self.subsonic_jwts
+        elif "u" in params:
+            ok = self.subsonic_users.get(params["u"]) == params.get("t", "")
+        else:
+            ck = rq.headers.get_first("cookie") or ""
+            for frag in ck.split(";"):
+                frag = frag.strip()
+                if "=" in frag:
+                    _, v = frag.split("=", 1)
+                    if v in self.cookie_sessions:
+                        ok = True
+            if not ok and f"nd_session={SESSION_COOKIE_VALUE}" in ck:
+                ok = True
+        if ok:
+            return self._reply(
+                200,
+                [("content-type", "application/json")],
+                json.dumps({"success": True, "indexes": []}).encode())
+        return self._reply(
+            401,
+            [("content-type", "application/json")],
+            json.dumps(
+                {"code": 40,
+                 "fields": {"u": "Invalid username/password"},
+                 "errors": {"u": "Invalid credentials"}}
+            ).encode())
 
     # ------------------------------------------------------------------ ws echo
     async def _ws_echo_loop(self, reader, writer, seed: bytes = b"") -> None:

@@ -83,7 +83,25 @@ class MpvEngine:
         """Send one mpv command; return its response dict.
 
         Raises EngineDown (transport) or RuntimeError (rejected/timeout).
+        One conservative retry on transport-class failures (a lost
+        datagram or a dropped first contact — rare but observed on the
+        C1 mock and possible on real mpv under load): the request is
+        resent with a fresh id and the same command. Deliberate engine
+        rejections are NEVER retried.
         """
+        try:
+            return self._cmd_once(*args, timeout=timeout)
+        except RuntimeError as exc:
+            if str(exc).startswith("engine recusou"):
+                raise
+        except EngineDown:
+            pass
+        return self._cmd_once(*args, timeout=timeout)
+
+    def _cmd_once(self, *args, timeout: float = 5.0) -> dict:
+        return self._cmd_impl(*args, timeout=timeout)
+
+    def _cmd_impl(self, *args, timeout: float = 5.0) -> dict:
         with self._lock:
             self._req_counter += 1
             rid = self._req_counter

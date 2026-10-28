@@ -23,6 +23,64 @@ import asyncio
 import json
 import os
 import sys
+from urllib.parse import parse_qsl, urlencode
+
+# ---------------------------------------------------------------- M1/A3
+# CREDENTIAL INVARIANT (spy side): what the spy persists is part of the
+# audit trail, so it obeys the same rule as every response: no token,
+# salt, user, or credential value ever hits this file. Parameter NAMES
+# travel; their values are REDACTED for the sensitive set. Values that
+# LOOK like secrets (JWT-shaped, long hex digests, long base64) are
+# redacted even under benign parameter names.
+
+_REDACTED_NAMES = frozenset({
+    "t", "s", "u", "token", "jwt", "sig", "signature", "key", "apikey",
+    "api_key", "password", "passwd", "pwd", "secret", "session", "auth",
+    "auth_token", "nd_session", "nonce", "csrf", "ticket",
+})
+_HEX_CHARS = frozenset("0123456789abcdef")
+_B64_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/")
+
+
+def _looks_like_secret(value: str) -> bool:
+    v = value.strip()
+    if not v:
+        return False
+    if v.startswith("ey") and v.count(".") >= 2:
+        return True  # JWT shape
+    lv = v.lower()
+    if len(lv) >= 32 and all(c in _HEX_CHARS for c in lv):
+        return True  # long hex digest (Subsonic t=, HMACs)
+    if len(v) >= 24 and all(c in _B64_CHARS for c in v[:-2]) and v[-2:] == "==":
+        return True  # long base64 blob
+    return False
+
+
+def redact_query(target: str) -> str:
+    """Strip/redact secret-bearing query pairs from a request target.
+
+    The path (no query) is preserved exactly; sensitive parameter VALUES
+    become "[REDACTED]" so the audit trail stays usable (names, routes,
+    timestamps) while the credential invariant holds.
+    """
+    if "?" not in target:
+        return target
+    path, _, qs = target.partition("?")
+    keep = []
+    for k, v in parse_qsl(qs, keep_blank_values=True):
+        if k.lower() in _REDACTED_NAMES or _looks_like_secret(v):
+            keep.append((k, "[REDACTED]"))
+        else:
+            keep.append((k, v))
+    return path + "?" + urlencode(keep)
+
+
+def _redact_fields(fields: dict) -> None:
+    for name in ("path", "target"):
+        val = fields.get(name)
+        if isinstance(val, str) and "?" in val:
+            fields[name] = redact_query(val)
 import time
 
 
@@ -61,6 +119,8 @@ class Spy:
     async def event(self, kind: str, **fields) -> None:
         if not self.enabled:
             return
+        # M1 redaction: never persist a secret value into the audit trail.
+        _redact_fields(fields)
         rec = {"ts": ts_iso(), "event": kind}
         rec.update(fields)
         try:
