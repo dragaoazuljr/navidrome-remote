@@ -1,0 +1,77 @@
+{"ts":"2026-10-27T19:38:36.873Z","event":"req","cid":"127.0.0.1:44778","method":"GET","path":"/api/v1/health","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.873Z","event":"res","path":"/api/v1/health","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:36.882Z","event":"req","cid":"127.0.0.1:44782","method":"GET","path":"/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.883Z","event":"res","cid":"127.0.0.1:44782","path":"/","status":302,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":[],"bytes_":28,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:36.889Z","event":"req","cid":"127.0.0.1:44784","method":"GET","path":"/app/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.890Z","event":"res","cid":"127.0.0.1:44784","path":"/app/","status":200,"content_type":"text/html","ce":"","set_cookie":[],"bytes_":2882,"transformed":true,"ms":0}
+{"ts":"2026-10-27T19:38:36.897Z","event":"req","cid":"127.0.0.1:44800","method":"GET","path":"/app/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.897Z","event":"res","cid":"127.0.0.1:44800","path":"/app/","status":200,"content_type":"text/html","ce":"","set_cookie":[],"bytes_":2882,"transformed":true,"ms":0}
+{"ts":"2026-10-27T19:38:36.906Z","event":"req","cid":"127.0.0.1:44812","method":"GET","path":"/bridge.js","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.906Z","event":"res","path":"/bridge.js","status":200,"local":"bridge","bytes_":1745}
+{"ts":"2026-10-27T19:38:36.913Z","event":"req","cid":"127.0.0.1:44820","method":"GET","path":"/bridge.js","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.913Z","event":"res","path":"/bridge.js","status":200,"local":"bridge","bytes_":1745}
+{"ts":"2026-10-27T19:38:36.920Z","event":"req","cid":"127.0.0.1:44828","method":"OPTIONS","path":"/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.921Z","event":"res","cid":"127.0.0.1:44828","path":"/","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:36.939Z","event":"req","cid":"127.0.0.1:44842","method":"OPTIONS","path":"/app/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.940Z","event":"res","cid":"127.0.0.1:44842","path":"/app/","status":200,"content_type":"text/html","ce":"","set_cookie":[],"bytes_":2860,"transformed":false,"ms":1}
+{"ts":"2026-10-27T19:38:36.959Z","event":"req","cid":"127.0.0.1:44854","method":"OPTIONS","path":"/rest/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.960Z","event":"res","cid":"127.0.0.1:44854","path":"/rest/","status":404,"content_type":"text/plain; charset=utf-8","ce":"","set_cookie":[],"bytes_":19,"transformed":false,"ms":1}
+{"ts":"2026-10-27T19:38:36.979Z","event":"req","cid":"127.0.0.1:44862","method":"OPTIONS","path":"/rest/ping","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:36.980Z","event":"res","cid":"127.0.0.1:44862","path":"/rest/ping","status":200,"content_type":"application/xml","ce":"","set_cookie":[],"bytes_":245,"transformed":false,"ms":1}
+{"ts":"2026-10-27T19:38:36.999Z","event":"req","cid":"127.0.0.1:44878","method":"OPTIONS","path":"/stream/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.001Z","event":"res","cid":"127.0.0.1:44878","path":"/stream/","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":1}
+{"ts":"2026-10-27T19:38:37.018Z","event":"req","cid":"127.0.0.1:44886","method":"OPTIONS","path":"/cover-art/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.019Z","event":"res","cid":"127.0.0.1:44886","path":"/cover-art/","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:37.037Z","event":"req","cid":"127.0.0.1:44898","method":"OPTIONS","path":"/playlists/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.038Z","event":"res","cid":"127.0.0.1:44898","path":"/playlists/","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:37.057Z","event":"req","cid":"127.0.0.1:44904","method":"OPTIONS","path":"/songs/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.057Z","event":"res","cid":"127.0.0.1:44904","path":"/songs/","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:37.075Z","event":"req","cid":"127.0.0.1:44918","method":"OPTIONS","path":"/ws","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.076Z","event":"res","cid":"127.0.0.1:44918","path":"/ws","status":405,"content_type":"","ce":"","set_cookie":[],"bytes_":0,"transformed":false,"ms":0}
+{"ts":"2026-10-27T19:38:37.094Z","event":"req","cid":"127.0.0.1:44928","method":"OPTIONS","path":"/api/v1/health","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.094Z","event":"api_unknown_route","method":"OPTIONS","path":"/api/v1/health"}
+{"ts":"2026-10-27T19:38:37.095Z","event":"res","path":"/api/v1/health","status":404,"local":"api"}
+{"ts":"2026-10-27T19:38:37.150Z","event":"req","cid":"127.0.0.1:44934","method":"GET","path":"/ws","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.151Z","event":"upgrade_red","cid":"127.0.0.1:44934","path":"/ws","status":302,"detail":"handshake nao retornou 101"}
+{"ts":"2026-10-27T19:38:37.151Z","event":"res","cid":"127.0.0.1:44934","path":"/ws","status":302,"bytes_":28}
+{"ts":"2026-10-27T19:38:37.151Z","event":"req","cid":"127.0.0.1:44948","method":"GET","path":"/app/ws","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.152Z","event":"upgrade_red","cid":"127.0.0.1:44948","path":"/app/ws","status":404,"detail":"handshake nao retornou 101"}
+{"ts":"2026-10-27T19:38:37.152Z","event":"res","cid":"127.0.0.1:44948","path":"/app/ws","status":404,"bytes_":19}
+{"ts":"2026-10-27T19:38:37.152Z","event":"req","cid":"127.0.0.1:44962","method":"GET","path":"/socket.io/?EIO=4&transport=websocket","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.153Z","event":"upgrade_red","cid":"127.0.0.1:44962","path":"/socket.io/?EIO=4&transport=websocket","status":302,"detail":"handshake nao retornou 101"}
+{"ts":"2026-10-27T19:38:37.153Z","event":"res","cid":"127.0.0.1:44962","path":"/socket.io/?EIO=4&transport=websocket","status":302,"bytes_":28}
+{"ts":"2026-10-27T19:38:37.153Z","event":"req","cid":"127.0.0.1:44968","method":"GET","path":"/events","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.154Z","event":"upgrade_red","cid":"127.0.0.1:44968","path":"/events","status":302,"detail":"handshake nao retornou 101"}
+{"ts":"2026-10-27T19:38:37.154Z","event":"res","cid":"127.0.0.1:44968","path":"/events","status":302,"bytes_":28}
+{"ts":"2026-10-27T19:38:37.154Z","event":"req","cid":"127.0.0.1:44982","method":"GET","path":"/sse","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.155Z","event":"upgrade_red","cid":"127.0.0.1:44982","path":"/sse","status":302,"detail":"handshake nao retornou 101"}
+{"ts":"2026-10-27T19:38:37.155Z","event":"res","cid":"127.0.0.1:44982","path":"/sse","status":302,"bytes_":28}
+{"ts":"2026-10-27T19:38:37.155Z","event":"req","cid":"127.0.0.1:44996","method":"GET","path":"/api/v1/events","host":"127.0.0.1:8483","upgrade":true,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.155Z","event":"api_unknown_route","method":"GET","path":"/api/v1/events"}
+{"ts":"2026-10-27T19:38:37.155Z","event":"res","path":"/api/v1/events","status":404,"local":"api"}
+{"ts":"2026-10-27T19:38:37.173Z","event":"req","cid":"127.0.0.1:45008","method":"GET","path":"/api/v1/health","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.173Z","event":"res","path":"/api/v1/health","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.183Z","event":"req","cid":"127.0.0.1:45020","method":"GET","path":"/api/v1/status","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.184Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.195Z","event":"req","cid":"127.0.0.1:45034","method":"POST","path":"/api/v1/play","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.196Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.205Z","event":"req","cid":"127.0.0.1:45036","method":"GET","path":"/api/v1/status","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.205Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.214Z","event":"req","cid":"127.0.0.1:45044","method":"POST","path":"/api/v1/pause","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.214Z","event":"res","path":"/api/v1/pause","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.225Z","event":"req","cid":"127.0.0.1:45054","method":"GET","path":"/api/v1/status","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.225Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.235Z","event":"req","cid":"127.0.0.1:45064","method":"POST","path":"/api/v1/seek","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.235Z","event":"res","path":"/api/v1/seek","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.245Z","event":"req","cid":"127.0.0.1:45080","method":"POST","path":"/api/v1/next","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.245Z","event":"res","path":"/api/v1/next","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.254Z","event":"req","cid":"127.0.0.1:45092","method":"POST","path":"/api/v1/volume","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.255Z","event":"res","path":"/api/v1/volume","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.264Z","event":"req","cid":"127.0.0.1:45096","method":"POST","path":"/api/v1/stop","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.264Z","event":"res","path":"/api/v1/stop","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.274Z","event":"req","cid":"127.0.0.1:45106","method":"GET","path":"/api/v1/status","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.275Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-10-27T19:38:37.306Z","event":"req","cid":"127.0.0.1:45110","method":"GET","path":"/app/","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.307Z","event":"res","cid":"127.0.0.1:45110","path":"/app/","status":200,"content_type":"text/html","ce":"","set_cookie":[],"bytes_":2882,"transformed":true,"ms":1}
+{"ts":"2026-10-27T19:38:37.312Z","event":"req","cid":"127.0.0.1:45122","method":"GET","path":"/api/v1/health","host":"127.0.0.1:8483","upgrade":false,"cookies":[]}
+{"ts":"2026-10-27T19:38:37.313Z","event":"res","path":"/api/v1/health","status":200,"local":"api"}

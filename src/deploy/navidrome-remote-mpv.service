@@ -1,0 +1,20 @@
+# navidrome-remote-mpv.service — motor de playback REAL (C3 / 2W + DAC)
+# Mesmo contrato IPC do mock: socket Unix JSON-IPC; o serviço único só conhece
+# o CAMINHO do socket (NVRA_MPV_SOCKET) — código agnóstico entre beds.
+[Unit]
+Description=Navidrome Remote — mpv playback engine (idle, JSON-IPC)
+After=network.target
+PartOf=navidrome-remote.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/navidrome-remote/env
+User=navidrome-remote
+Group=navidrome-remote
+ExecStart=/usr/bin/mpv --idle=yes --really-quiet --input-ipc-server=${NVRA_MPV_SOCKET}
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
