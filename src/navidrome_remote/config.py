@@ -44,9 +44,10 @@ class Config:
     upstream_vhost: str = ""        # empty -> Host rewritten to upstream host:port
     mpv_socket: str = "/dev/shm/mpv-ipc"
     spy_file: str = "/var/lib/navidrome-remote/spy.ndjson"
-    api_token: str = ""              # M1: session gate extends this; empty in M0'
+    api_token: str = ""              # L0 (optional) static token — M1: see gateway
     nav_user: str = ""               # Subsonic service account (never in KB)
     nav_pass: str = ""
+    state_file: str = "/var/lib/navidrome-remote/state.json"  # M1 queue/state store
     max_request_bytes: int = 16 * 1024 * 1024   # upload/cover-art ceiling
     max_html_bytes: int = 4 * 1024 * 1024       # SPA document ceiling
     keepalive_idle: float = 60.0                # s to wait for the next request on a
@@ -74,6 +75,8 @@ class Config:
                 api_token=env.get("NVRA_API_TOKEN", ""),
                 nav_user=env.get("NVRA_NAV_USER", ""),
                 nav_pass=env.get("NVRA_NAV_PASS", ""),
+                state_file=env.get("NVRA_STATE_FILE",
+                                   "/var/lib/navidrome-remote/state.json"),
                 max_request_bytes=int(env.get("NVRA_MAX_REQ_BYTES", "16777216")),
                 max_html_bytes=int(env.get("NVRA_MAX_HTML_BYTES", "4194304")),
                 keepalive_idle=float(env.get("NVRA_KEEPALIVE_IDLE", "60")),

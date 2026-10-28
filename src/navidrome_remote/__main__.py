@@ -2,8 +2,8 @@
 
 Everything is configured through the environment (EnvironmentFile per spec
 v1.2): NVRA_LISTEN_ADDR / NVRA_LISTEN_PORT / NVRA_UPSTREAM /
-NVRA_UPSTREAM_VHOST / NVRA_MPV_SOCKET / NVRA_SPY_FILE / NVRA_API_TOKEN /
-NVRA_NAV_USER / NVRA_NAV_PASS.
+NVRA_UPSTREAM_VHOST / NVRA_MPV_SOCKET / NVRA_SPY_FILE / NVRA_STATE_FILE /
+NVRA_API_TOKEN / NVRA_NAV_USER / NVRA_NAV_PASS.
 
 Fail-fast philosophy: misconfiguration must never mean "the service silently
 half-works". Bad env -> loud error on stderr + nonzero exit -> systemd
@@ -14,22 +14,22 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import importlib.util
 import logging
 import os
 import signal
 import sys
-from pathlib import Path
 
 from . import NAVIDROME_ANCHOR, SERVICE_NAME, SERVICE_VERSION
 from .api import Api
 from .config import Config, ConfigError
+from .gateway import SessionGate
 from .ipc import MpvEngine
 from .proxy import ProxyServer
+from .queue import QueueStore, apply_to_engine
 from .spy import Spy
 
 
-def _banner(cfg: Config, engine: MpvEngine) -> None:
+def _banner(cfg: Config, engine: MpvEngine, store: QueueStore) -> None:
     route = "custom"
     if (cfg.upstream_host, cfg.upstream_port) == ("192.168.0.200", 4533):
         route = "P1-LAN-crua"
@@ -37,7 +37,7 @@ def _banner(cfg: Config, engine: MpvEngine) -> None:
         route = f"P2-ts-gw (vhost={cfg.upstream_vhost})"
     log = logging.getLogger(SERVICE_NAME)
     log.info(
-        "%s %s up — listen=%s:%s upstream=%s (%s) vhost=%s socket=%s spy=%s anchor=%s api-token=%s",
+        "%s %s up — listen=%s:%s upstream=%s (%s) vhost=%s socket=%s spy=%s state=%s anchor=%s api-token=%s gate=session-3layer",
         SERVICE_NAME,
         SERVICE_VERSION,
         cfg.listen_addr,
@@ -47,9 +47,15 @@ def _banner(cfg: Config, engine: MpvEngine) -> None:
         cfg.vhost_authority,
         cfg.mpv_socket,
         cfg.spy_file,
+        cfg.state_file,
         NAVIDROME_ANCHOR,
         "set" if cfg.api_token else "off",
     )
+    if store.pending_restore:
+        log.info(
+            "estado persistente em memória (%d itens) — aplicação ao motor quando disponível",
+            len(store.items),
+        )
     if not engine.alive:
         log.warning(
             "motor de playback FORA DO AR (socket %s ausente/sem resposta) — "
@@ -59,11 +65,37 @@ def _banner(cfg: Config, engine: MpvEngine) -> None:
 
 
 def _load_bridge_asset() -> bytes:
-    p = Path(__file__).resolve().parent / "assets" / "bridge.js"
-    data = p.read_bytes()
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "bridge.js")
+    data = open(p, "rb").read()
     if not data:
         raise ConfigError("asset bridge.js vazio")
     return data
+
+
+async def _restore_loop(store: QueueStore, engine: MpvEngine, spy: Spy,
+                        stop_event: asyncio.Event) -> None:
+    """Lazy best-effort application of persisted queue/state to the engine.
+
+    Retries every 5 s while the engine is down and `pending_restore` holds;
+    the engine's ack is the receipt (apply_to_engine clears the flag). A
+    failure here NEVER propagates into a client request.
+    """
+    while not stop_event.is_set():
+        if store.pending_restore:
+            try:
+                if engine.alive:
+                    await apply_to_engine(store, engine, spy)
+            except Exception as exc:
+                print(
+                    "[%s] restore tentou e falhou (%s) — novo ciclo em 5s"
+                    % (SERVICE_NAME, type(exc).__name__),
+                    file=sys.stderr,
+                )
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=5.0)
+            break
+        except asyncio.TimeoutError:
+            pass
 
 
 def main() -> int:
@@ -81,7 +113,9 @@ def main() -> int:
     try:
         spy = Spy(cfg.spy_file)
         engine = MpvEngine(cfg.mpv_socket)
-        api = Api(cfg, spy, engine)
+        store = QueueStore(cfg, spy)
+        gate = SessionGate(cfg, spy)
+        api = Api(cfg, spy, engine, store, gate)
         bridge = _load_bridge_asset()
         server = ProxyServer(cfg, spy, api, bridge)
     except ConfigError as exc:
@@ -100,18 +134,21 @@ def main() -> int:
         with contextlib.suppress(NotImplementedError):
             loop.add_signal_handler(s, _sig, s.name)
 
-    srv = loop.run_until_complete(server.start())
-    _banner(cfg, engine)
+    server_started = loop.run_until_complete(server.start())
+    _banner(cfg, engine, store)
 
+    restore_task = loop.create_task(_restore_loop(store, engine, spy, stop_event))
     try:
         loop.run_until_complete(stop_event.wait())
     finally:
+        restore_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            loop.run_until_complete(restore_task)
+        store.save()
         loop.run_until_complete(server.aclose())
-        srv.close()
-        try:
-            loop.run_until_complete(srv.wait_closed())
-        except Exception:
-            pass
+        server_started.close()
+        with contextlib.suppress(Exception):
+            loop.run_until_complete(server_started.wait_closed())
         engine.close()
         loop.close()
         logging.getLogger(SERVICE_NAME).info("shutdown limpo")

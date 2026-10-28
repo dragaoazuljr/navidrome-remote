@@ -1,0 +1,252 @@
+{
+  "stamp": "20261028-051422Z",
+  "origin": "http://127.0.0.1:8481",
+  "upstream": "192.168.0.200:4533",
+  "vhost": "",
+  "cred_user": "sbc",
+  "steps": {},
+  "anchor": {
+    "in_browser": "0.64.2 (10114574)",
+    "server_ping": "0.64.2 (10114574)"
+  },
+  "login_initial_state": {
+    "formPresent": true,
+    "alreadyLoggedIn": false
+  },
+  "login": {
+    "ok": true,
+    "via": "formulario",
+    "evidence": {
+      "authed": true,
+      "hasToken": true,
+      "tokLen": 215,
+      "hasU": true,
+      "hasS": true
+    }
+  },
+  "boot": {
+    "window_s": 20.0,
+    "request_count": 12,
+    "routes": {
+      "/rest/getCoverArt": {
+        "count": 4,
+        "types": [
+          "Fetch"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "http://127.0.0.1:8481/rest/getCoverArt?u=sbc&t=e89ab368c4c232b68c6dd8d5f91f924d&s=ffc02d&f=json&v=1.8.0&c=NavidromeUI&id=al-4bDDWLfWRhNB9rZykzKUkV_da2d64c81908d12d&size=300&square=true",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/8f0a096c-a4db-4124-a201-7d4a01e12b9d": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/8f0a096c-a4db-4124-a201-7d4a01e12b9d",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/8069a683-8449-40b9-ae2f-b2a365e44ec5": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/8069a683-8449-40b9-ae2f-b2a365e44ec5",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/7fb21d54-412d-4dec-9978-6f18304002f4": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/7fb21d54-412d-4dec-9978-6f18304002f4",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/bd0049ae-0574-45b1-9abe-3c5a0ba3e709": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/bd0049ae-0574-45b1-9abe-3c5a0ba3e709",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/d7a4c176-9a4e-437b-9057-6dd4c654475b": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/d7a4c176-9a4e-437b-9057-6dd4c654475b",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/b67726f6-5c06-4dfe-b6e2-3e2efd5a0f78": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/b67726f6-5c06-4dfe-b6e2-3e2efd5a0f78",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/1682c5fc-c683-4665-aeca-ca09d27ee134": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/1682c5fc-c683-4665-aeca-ca09d27ee134",
+        "setCookies": []
+      },
+      "http://127.0.0.1:8481/acfddde3-aa3d-4f52-9070-fb76864c1370": {
+        "count": 1,
+        "types": [
+          "Image"
+        ],
+        "statuses": [
+          200
+        ],
+        "sample": "blob:http://127.0.0.1:8481/acfddde3-aa3d-4f52-9070-fb76864c1370",
+        "setCookies": []
+      }
+    }
+  },
+  "transport_idle": {
+    "verdict": "INCONCLUSIVO neste trecho (tocar a faixa?)",
+    "streamHits": [],
+    "ssePaths": [],
+    "ws": {
+      "created": 0,
+      "opened": 0,
+      "frames_in": 0,
+      "frames_out": 0,
+      "urls": []
+    },
+    "audioElements": []
+  },
+  "transport_play": {
+    "verdict": "INCONCLUSIVO neste trecho (tocar a faixa?)",
+    "streamHits": [],
+    "ssePaths": [],
+    "ws": {
+      "created": 0,
+      "opened": 0,
+      "frames_in": 0,
+      "frames_out": 0,
+      "urls": []
+    },
+    "audioElements": []
+  },
+  "play": {
+    "mode": "ui",
+    "uiClicked": true,
+    "apiUsed": false,
+    "via": "button[aria-label*=\"play\" i]",
+    "progress": false,
+    "audioAfter": [
+      {}
+    ]
+  },
+  "bridge": {
+    "loaded_in_browser": true
+  },
+  "bii": {
+    "green": true,
+    "requirement": "sessao do Navidrome sobrevivendo a reload/navegacao no origin publicado",
+    "scheme": "v0.64.2: localStorage (is-authenticated, token, subsonic-token, subsonic-salt); cookie = residual/outra versao",
+    "details": {
+      "authHeldAcrossSteps": true,
+      "loginFormNeverReturned": true,
+      "cookiesObserved": false,
+      "cookiesOk": true
+    },
+    "steps": [
+      {
+        "step": "reload-1",
+        "cookiesBefore": [],
+        "cookiesAfter": [],
+        "surviving": [],
+        "ls": {
+          "authed": true,
+          "hasToken": true,
+          "tokLen": 215,
+          "hasU": true,
+          "hasS": true
+        },
+        "authStatus": null,
+        "authOk": true,
+        "loginFormBack": false
+      },
+      {
+        "step": "reload-2",
+        "cookiesBefore": [],
+        "cookiesAfter": [],
+        "surviving": [],
+        "ls": {
+          "authed": true,
+          "hasToken": true,
+          "tokLen": 215,
+          "hasU": true,
+          "hasS": true
+        },
+        "authStatus": null,
+        "authOk": true,
+        "loginFormBack": false
+      },
+      {
+        "step": "nav-raiz",
+        "cookiesBefore": [],
+        "cookiesAfter": [],
+        "surviving": [],
+        "ls": {
+          "authed": true,
+          "hasToken": true,
+          "tokLen": 215,
+          "hasU": true,
+          "hasS": true
+        },
+        "authStatus": null,
+        "authOk": true,
+        "loginFormBack": false
+      },
+      {
+        "step": "nav-app",
+        "cookiesBefore": [],
+        "cookiesAfter": [],
+        "surviving": [],
+        "ls": {
+          "authed": true,
+          "hasToken": true,
+          "tokLen": 215,
+          "hasU": true,
+          "hasS": true
+        },
+        "authStatus": null,
+        "authOk": true,
+        "loginFormBack": false
+      }
+    ]
+  },
+  "bridge_beacons": {
+    "count": 0,
+    "samples": []
+  }
+}

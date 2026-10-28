@@ -3,3 +3,6 @@ __pycache__/
 .svn/
 swarm/
 docs/reports/spy-*.ndjson
+*.zip
+*-trace.ndjson
+src/docs/reports/spy-*.ndjson

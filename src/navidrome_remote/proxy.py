@@ -200,6 +200,27 @@ class ProxyServer:
         # NOTE: `leftover` carries request-body bytes already pulled off the
         # wire by read_head; dropping it deadlocks (the client sent everything
         # and waits for the reply while we wait for bytes that never come).
+        if rq.method == "OPTIONS":
+            # Preflight for the LOCAL control plane: never proxied to the
+            # upstream (A2 map: /api/v1/* cells are BY-DESIGN asymmetric).
+            # The session gate decides afterwards — a valid preflight does
+            # NOT imply an authorized call.
+            await self._synthesize(
+                writer,
+                204,
+                "No Content",
+                [
+                    ("access-control-allow-origin", "*"),
+                    ("access-control-allow-methods", "GET, POST"),
+                    ("access-control-allow-headers", "authorization, content-type"),
+                    ("vary", "Origin"),
+                    ("cache-control", "no-store"),
+                ],
+                b"",
+                conn_close=True,
+            )
+            await self.spy.event("res", path=rq.target, status=204, local="api-options")
+            return True
         body = b""
         if rq.method in ("POST", "PUT", "PATCH"):
             body = await read_request_body(
