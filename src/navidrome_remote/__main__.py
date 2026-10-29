@@ -3,7 +3,10 @@
 Everything is configured through the environment (EnvironmentFile per spec
 v1.2): NVRA_LISTEN_ADDR / NVRA_LISTEN_PORT / NVRA_UPSTREAM /
 NVRA_UPSTREAM_VHOST / NVRA_MPV_SOCKET / NVRA_SPY_FILE / NVRA_STATE_FILE /
-NVRA_API_TOKEN / NVRA_NAV_USER / NVRA_NAV_PASS.
+NVRA_API_TOKEN / NVRA_NAV_USER / NVRA_NAV_PASS
+(A5, optional): NVRA_STATE_WRITE_INTERVAL — the coalescing window (s)
+for continuous state observations; discrete transactions always flush
+synchronously. Default 1.
 
 Fail-fast philosophy: misconfiguration must never mean "the service silently
 half-works". Bad env -> loud error on stderr + nonzero exit -> systemd
@@ -98,6 +101,42 @@ async def _restore_loop(store: QueueStore, engine: MpvEngine, spy: Spy,
             pass
 
 
+async def _state_tracker(store: QueueStore, engine: MpvEngine,
+                         stop_event: asyncio.Event,
+                         period: float = 5.0) -> None:
+    """A5 — the continuous transport-state observer (queue.py ADR-004).
+
+    Runs INDEPENDENTLY OF ANY CLIENT: nobody looking at /status is not a
+    reason for the persisted record to stall. Every `period` seconds it
+    samples the engine's transport picture and folds it into the store
+    through the observation fold (`track_observed`) — the store's
+    single RLock serializes everything; the write cost stays bounded by
+    the 1 s coalescing window (at most one file write per five, and
+    ZERO when nothing moved: a pure read costs the SD card nothing).
+
+    A DOWN engine contributes no facts (probing it raises a connection
+    error): the tick is skipped, no event spam. Nothing here may EVER
+    propagate into the event loop's death — this is a janitor.
+    """
+    # the store's observation fold consumes playback-status / time-pos /
+    # playlist-current-id (the position anchor) — mirror the engine's
+    # observation set (controller.CORE_PROPS + the id anchor).
+    names = ("idle", "playback-status", "time-pos",
+             "playlist-current-id", "playlist-count", "duration")
+    while not stop_event.is_set():
+        try:
+            if engine.alive:
+                props = engine.get_properties(list(names))
+                store.track_observed(props)
+        except Exception:
+            pass
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=period)
+            break
+        except asyncio.TimeoutError:
+            pass
+
+
 def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
@@ -113,6 +152,8 @@ def main() -> int:
     try:
         spy = Spy(cfg.spy_file)
         engine = MpvEngine(cfg.mpv_socket)
+        # A5: the store reads its own write window from the config
+        # (NVRA_STATE_WRITE_INTERVAL); the ctor stays A3-shaped.
         store = QueueStore(cfg, spy)
         gate = SessionGate(cfg, spy)
         api = Api(cfg, spy, engine, store, gate)
@@ -138,12 +179,22 @@ def main() -> int:
     _banner(cfg, engine, store)
 
     restore_task = loop.create_task(_restore_loop(store, engine, spy, stop_event))
+    # A5: the janitor that keeps the persisted record fresh while the
+    # service is alive (independent of clients) and drains its pending
+    # window on the way out (below, store.save() flushes leftovers).
+    # ADR-004: fixed 5 s cadence — the SAMPLE period is decoupled from
+    # the store's 1 s WRITE window (two different budgets, two knobs).
+    tracker_task = loop.create_task(_state_tracker(
+        store, engine, stop_event, period=5.0))
     try:
         loop.run_until_complete(stop_event.wait())
     finally:
         restore_task.cancel()
+        tracker_task.cancel()
         with contextlib.suppress(asyncio.CancelledError, Exception):
             loop.run_until_complete(restore_task)
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            loop.run_until_complete(tracker_task)
         store.save()
         loop.run_until_complete(server.aclose())
         server_started.close()
