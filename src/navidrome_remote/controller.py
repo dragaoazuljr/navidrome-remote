@@ -242,6 +242,8 @@ class PlaybackController:
                                 reason="ipc", error=str(exc))
             return False
 
+        st = store.settings
+        phase = PHASE_PLAYING  # effective phase (legacy default)
         try:
             if has_phase:
                 # A5: the settings mirror BEFORE the start so the first
