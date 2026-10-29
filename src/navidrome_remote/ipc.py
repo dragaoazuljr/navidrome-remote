@@ -41,6 +41,18 @@ class MpvEngine:
         self.event_observer = None  # callable(dict) — future SSE/WS push
         self.reply_path: "str | None" = None  # own socket path (see _ensure)
         self._epath_idx = 0
+        # SHARED MAILBOX for in-flight request ids. Several service
+        # threads may hold requests open at once (an /status probe racing
+        # a /next handler on this single datagram socket): the reader
+        # thread that PHYSICALLY receives a reply is not always its
+        # owner, so every foreign response is parked here for the
+        # matching waiter instead of being dropped. Silent dropping
+        # was the observed starvation: the owner burned its 5 s timeout
+        # while its reply sat consumed in a stranger's recv loop, and
+        # the flapping 'alive' ping made /status report engine-down on
+        # a perfectly healthy engine (A6 forensics).
+        self._mailbox: "dict" = {}   # rid -> list of parked JSON lines
+        self._cv = threading.Condition()
 
     # ------------------------------------------------------------------ life
     def _ensure(self) -> socket.socket:
@@ -90,16 +102,50 @@ class MpvEngine:
         rejections are NEVER retried.
         """
         try:
-            return self._cmd_once(*args, timeout=timeout)
+            return self._cmd_impl(*args, timeout=timeout)
         except RuntimeError as exc:
             if str(exc).startswith("engine recusou"):
                 raise
         except EngineDown:
             pass
-        return self._cmd_once(*args, timeout=timeout)
-
-    def _cmd_once(self, *args, timeout: float = 5.0) -> dict:
         return self._cmd_impl(*args, timeout=timeout)
+
+    # -------------------------------------------------- mailboxes (thread
+    # safe): the shared park for responses destined to OTHER in-flight
+    # request ids, so concurrent waiters never eat each other's replies.
+    def _take_mailbox(self, rid: int):
+        with self._cv:
+            bucket = self._mailbox.pop(rid, None)
+        if not bucket:
+            return None
+        try:
+            return json.loads(bucket[-1])  # last delivery wins
+        except json.JSONDecodeError:
+            return None
+
+    def _park_foreign(self, obj: dict) -> None:
+        rid = obj.get("request_id")
+        if isinstance(rid, int):
+            with self._cv:
+                bkt = self._mailbox.setdefault(rid, [])
+                bkt.append(json.dumps(obj, separators=(",", ":")))
+                if len(bkt) > 8:
+                    del bkt[:len(bkt) - 8]
+                if len(self._mailbox) > 128:  # cap: dead ids must not leak
+                    for k in sorted(self._mailbox)[:-128]:
+                        self._mailbox.pop(k, None)
+        if "event" in obj and self.event_observer is not None:
+            try:
+                self.event_observer(obj)
+            except Exception:
+                pass
+
+    def _accept(self, obj: dict) -> dict:
+        self.last_contact = time.time()
+        if obj.get("error") not in (None, "success"):
+            raise RuntimeError(
+                "engine recusou: %r :: %r" % (obj.get("error"), obj))
+        return obj
 
     def _cmd_impl(self, *args, timeout: float = 5.0) -> dict:
         with self._lock:
@@ -114,18 +160,30 @@ class MpvEngine:
             msg["nvr-reply-to"] = self.reply_path
         payload = json.dumps(msg, separators=(",", ":")) + "\n"
         sock = self._ensure()
+        # A reply for THIS id may already be parked (a previous recv
+        # swept it in before we started waiting) — honor it before
+        # spending another round trip.
+        hit = self._take_mailbox(rid)
+        if hit is not None:
+            return self._accept(hit)
         try:
             sock.send(payload.encode())
-        except (FileNotFoundError, ConnectionRefusedError, BrokenPipeError, OSError) as exc:
+        except (FileNotFoundError, ConnectionRefusedError,
+                BrokenPipeError, OSError) as exc:
             self.close()
             raise EngineDown(str(exc)) from exc
         deadline = time.monotonic() + timeout
         while True:
+            hit = self._take_mailbox(rid)
+            if hit is not None:
+                return self._accept(hit)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise RuntimeError(f"tempo esgotado aguardando resposta do engine (req {rid})")
+                raise RuntimeError(
+                    "tempo esgotado aguardando resposta do engine (req %d)"
+                    % rid)
             try:
-                sock.settimeout(max(0.05, min(remaining, 0.5)))
+                sock.settimeout(min(max(0.05, remaining), 0.5))
                 raw = sock.recv(65536)
             except socket.timeout:
                 continue
@@ -134,26 +192,18 @@ class MpvEngine:
                 raise EngineDown(str(exc)) from exc
             if not raw:
                 continue
-            for msg in raw.decode(errors="replace").split("\n"):
-                msg = msg.strip()
-                if not msg:
+            for line in raw.decode(errors="replace").split("\n"):
+                line = line.strip()
+                if not line:
                     continue
                 try:
-                    obj = json.loads(msg)
+                    obj = json.loads(line)
                 except json.JSONDecodeError:
                     continue
                 if obj.get("request_id") == rid:
-                    self.last_contact = time.time()
-                    if obj.get("error") not in (None, "success"):
-                        raise RuntimeError(f"engine recusou: {obj.get('error')} :: {obj}")
-                    return obj
-                if "event" in obj and self.event_observer is not None:
-                    try:
-                        self.event_observer(obj)
-                    except Exception:
-                        pass
+                    return self._accept(obj)
+                self._park_foreign(obj)
 
-    # ------------------------------------------------------------ conveniences
     def get_property(self, name: str) -> "object":
         resp = self.cmd(["get_property", name])
         return resp.get("data")

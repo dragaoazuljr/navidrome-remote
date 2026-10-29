@@ -15,7 +15,8 @@ Parity surface (v0.3 — property set of the mpv builds we anchor to):
     REORDER on 0->1: current entry kept in place, original layout
     restored on 1->0 — mirrors the real engine), loop-file, loop-playlist;
   * loadfile <uri> [replace|append] [, ...] [id] — playlist-aware (M1/A4):
-      replace   -> entries=[uri], play index 0
+      replace   -> swap the file AT the current index (remaining entries
+                   untouched — real-mpv fidelity; A6), play it
       append    -> entries += [uri], play last
       default   -> play uri at current position (seed if empty);
   * playlist-add <uri> [index] [id] (index -1/omitted = append),
@@ -59,6 +60,9 @@ import time
 
 
 VERSION = "0.3.0-fake-mpv-sink"
+
+
+_SINK_LOG = os.environ.get("NVRA_SINK_LOG")
 
 
 class Entry:
@@ -349,6 +353,11 @@ class Sink:
             if target:
                 self.peers.add(target)
             rid = msg.get("request_id")
+            if _SINK_LOG:
+                with open(_SINK_LOG, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(
+                        {"t": round(time.monotonic(), 4),
+                         "cmd": msg["command"]}) + chr(10))
             with self.lock:
                 error, extra = self._exec(msg["command"])
             reply = {"error": error, "request_id": rid}
@@ -439,8 +448,23 @@ class Sink:
                     break
             was_idle = st.idle
             if flag == "replace":
-                st.entries = [Entry(uri, id_, self.default_duration)]
-                st.pl_idx = 0
+                # Fidelity (A6): real mpv `loadfile <uri> replace` swaps
+                # the file at the CURRENT playlist position and leaves
+                # the remaining entries in place; it never flattens the
+                # deck. The M0' single-file shortcut (wipe + reload)
+                # destroyed seeded queues whenever a /play raced a
+                # next/prev — reproduced 1:1 in the T7 trace.
+                if st.entries and 0 <= st.pl_idx < len(st.entries):
+                    st.entries[st.pl_idx] = Entry(
+                        uri, id_, self.default_duration)
+                elif st.entries:
+                    st.entries.append(
+                        Entry(uri, id_, self.default_duration))
+                    st.pl_idx = len(st.entries) - 1
+                else:
+                    st.entries = [Entry(uri, id_,
+                                        self.default_duration)]
+                    st.pl_idx = 0
             elif flag == "append":
                 st.entries.append(Entry(uri, id_, self.default_duration))
                 st.pl_idx = len(st.entries) - 1

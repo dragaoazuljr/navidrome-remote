@@ -57,6 +57,30 @@ Translation (A4 — /api/v1/* -> stock mpv JSON-IPC)
   while shuffling); the FOLLOWING /status call carries the engine-
   reconciled index — eventual per request, strong via polling.
 
+  DOUBLE-INTENT ABSORPTION (A6): one physical gesture from the UI plane
+  arrives as a PAIR of writes — the media-source swap (/play {id}) and
+  the transport button (/next|/prev), in either order within
+  `TRANSPORT_ECHO_MS`. The pair commutes via three rules:
+    * /play {id == current}      -> 200 echo, no write (re-selecting
+                                     the current track is not a
+                                     selection; a real restart is
+                                     `seek 0`). Keeps a seeded deck
+                                     intact;
+    * /play adjacent (±1)        -> the write is HELD for
+                                     `PLAY_DEFER_S`; a matching
+                                     /next|/prev in the window cancels
+                                     it ("the step is the primary
+                                     intent") or, if the play already
+                                     landed, the step folds to a no-op
+                                     200; on the hold deadline the play
+                                     executes as an ordinary structural
+                                     play;
+    * /next|/prev with a recent  /play targeting this step's own
+                                     destination -> same fold.
+  Any unmatched /play keeps the A3 contract EXACTLY (structural
+  replacement via loadfile "replace"). Absorption events land in the
+  spy (`a6_double_intent_absorbed` / `a6_same_id_play_absorbed`).
+
 Authorization (three-layer session gate — see gateway.py)
 ----------------------------------------------------------
 Default posture (NVRA_API_TOKEN empty): EVERY route except /health
@@ -83,6 +107,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import time
 from urllib.parse import urlencode
 
 from . import NAVIDROME_ANCHOR, SERVICE_VERSION, SUBSONIC_CLIENT_VER
@@ -92,6 +117,17 @@ from .queue import MAX_ITEMS, QueueStore, StoreError
 from .spy import Spy
 
 PHASE = "M1"
+
+# A6 — double-intent absorption. The browser plane expresses ONE gesture
+# (a next/prev press) as TWO writes: the UI swaps the media source
+# (bridge /play {id}) and the button (bridge /next|/prev), often within
+# milliseconds and in EITHER order. Unfolded, that pair corrupts the
+# deck (structural replacement + a step against a single-entry
+# playlist = engine stops). The absorbers below make the pair
+# commute: whichever member arrives first, the engine ends on the
+# position the single gesture denoted, and a multi-item deck survives.
+TRANSPORT_ECHO_MS = 1000  # window in which two writes are "one gesture"
+PLAY_DEFER_S = 0.40       # hold for an adjacent /play awaiting its twin
 
 
 def _json(status: int, payload: dict) -> "tuple[int, str, bytes]":
@@ -159,6 +195,11 @@ class Api:
             store = QueueStore(cfg, spy)
         self.store = store
         self.controller = PlaybackController(cfg, spy, engine, self.store)
+        # Double-intent ledger (A6): monotonic stamps of the last
+        # /next and /prev, plus the last /play intent ({t, frm, to,
+        # gate}); `gate` is a pending deferral future while the /play
+        # holds before deciding to write.
+        self._tx = {"next": 0.0, "prev": 0.0, "play": None}
         if gateway is None:
             from .gateway import SessionGate
             gateway = SessionGate(cfg, spy)
@@ -262,6 +303,13 @@ class Api:
                 await self.spy.event("api_engine_idle", path=path)
                 return _json(503, {"error": "engine-idle",
                                    "detail": "motor ocioso — nenhuma faixa ativa"})
+            verdict = self._absorb_adjacent_play(time.monotonic(), +1)
+            if verdict == "absorbed":
+                await self.spy.event("a6_double_intent_absorbed",
+                                     path=path, mode="stepped-play")
+                return _json(200, {"ok": True, "index": self.store.index,
+                                   "echo": "adjacent-play"})
+            self._tx["next"] = time.monotonic()
             self.store.step(1)
             await asyncio.to_thread(self.controller.next)
             return _json(200, {"ok": True, "index": self.store.index})
@@ -270,6 +318,13 @@ class Api:
                 await self.spy.event("api_engine_idle", path=path)
                 return _json(503, {"error": "engine-idle",
                                    "detail": "motor ocioso — nenhuma faixa ativa"})
+            verdict = self._absorb_adjacent_play(time.monotonic(), -1)
+            if verdict == "absorbed":
+                await self.spy.event("a6_double_intent_absorbed",
+                                     path=path, mode="stepped-play")
+                return _json(200, {"ok": True, "index": self.store.index,
+                                   "echo": "adjacent-play"})
+            self._tx["prev"] = time.monotonic()
             self.store.step(-1)
             await asyncio.to_thread(self.controller.prev)
             return _json(200, {"ok": True, "index": self.store.index})
@@ -445,6 +500,38 @@ class Api:
                            "length": len(self.store.items),
                            "index": self.store.index})
 
+    def _absorb_adjacent_play(self, now: float, delta: int) -> str | None:
+        """Double-intent absorption for this step (A6).
+
+        If the LAST /play arrived inside `TRANSPORT_ECHO_MS` and aimed at
+        exactly the position THIS step would step to (its recorded
+        from->to delta equals `delta`), that /play is the UI's half of
+        the same gesture:
+
+        * still in deferral -> its gate is cancelled (the structural
+          replacement never happens) and the STEP proceeds against the
+          intact deck;
+        * already executed -> it structurally replaced the queue with
+          the very target of this step, so stepping again would
+          overshoot (or stop at a single-entry playlist end); the step
+          folds into a no-op 200.
+
+        Returns "cancel" (step proceeds), "absorbed" (caller returns
+        200 without stepping) or None (no relation — step normally).
+        """
+        pp = self._tx.get("play")
+        if pp is None or pp.get("to") is None or pp.get("frm") is None:
+            return None
+        if pp["to"] - pp["frm"] != delta:
+            return None
+        if (now - pp["t"]) > TRANSPORT_ECHO_MS / 1000.0:
+            return None
+        gate = pp.get("gate")
+        if gate is not None and not gate.done():
+            gate.set_result(str(delta))  # pending /play stands down
+            return "cancel"
+        return "absorbed"
+
     async def _play(self, payload: dict):
         url = payload.get("url")
         kind = "url"
@@ -464,6 +551,60 @@ class Api:
                 self.cfg.upstream_base_url, str(song_id),
                 self.cfg.nav_user, self.cfg.nav_pass,
             )
+        if kind == "id":
+            idx = self.store.find_by_id(str(song_id))
+            cur = self.store.index
+            cur = cur if isinstance(cur, int) else None
+            now = time.monotonic()
+            if idx is not None and idx == cur:
+                # Re-selecting the current track is an echo, not a
+                # selection: honoring it as a structural replacement
+                # would flatten a multi-item deck for no gain (a real
+                # restart is `seek 0`). Deck survives; nothing reloads.
+                self._tx["play"] = {"t": now, "frm": cur, "to": idx,
+                                    "gate": None}
+                await self.spy.event("a6_same_id_play_absorbed",
+                                     path="/api/v1/play")
+                return _json(200, {"ok": True, "kind": kind,
+                                   "echo": "same-id"})
+            delta = (idx - cur) if (idx is not None and cur is not None) \
+                else None
+            if delta in (1, -1):
+                opp = "next" if delta == 1 else "prev"
+                if (now - self._tx[opp]) <= TRANSPORT_ECHO_MS / 1000.0:
+                    # The twin transport already STEPPED us to this
+                    # exact id: the /play is its echo — no write.
+                    self._tx["play"] = {"t": now, "frm": cur, "to": idx,
+                                        "gate": None}
+                    await self.spy.event("a6_double_intent_absorbed",
+                                         path="/api/v1/play",
+                                         mode="echo-of-" + opp)
+                    return _json(200, {"ok": True, "kind": kind,
+                                       "echo": opp + "-echo"})
+                # Twin not here YET: an adjacent hop this soon after a
+                # deck operation is overwhelmingly the UI's half of an
+                # inbound next/prev. Hold the write briefly; a matching
+                # step arriving inside the window cancels this (its
+                # absorber wakes the gate). Ordinary selections of a
+                # neighbor song pay at most `PLAY_DEFER_S`.
+                gate = asyncio.get_running_loop().create_future()
+                self._tx["play"] = {"t": now, "frm": cur, "to": idx,
+                                    "gate": gate}
+                try:
+                    await asyncio.wait_for(gate, timeout=PLAY_DEFER_S)
+                    await self.spy.event("a6_double_intent_absorbed",
+                                         path="/api/v1/play",
+                                         mode="deferred-standing-down")
+                    return _json(200, {"ok": True, "kind": kind,
+                                       "echo": "superseded-by-" +
+                                               str(gate.result())})
+                except asyncio.TimeoutError:
+                    gate = None  # deadline: execute as an ordinary play
+                    self._tx["play"] = {"t": now, "frm": cur, "to": idx,
+                                        "gate": None}
+            else:
+                self._tx["play"] = {"t": now, "frm": cur, "to": idx,
+                                    "gate": None}
         await asyncio.to_thread(self.controller.play, url)
         if kind == "id":
             self.store.note_replacement({"id": str(song_id), "title": title})
