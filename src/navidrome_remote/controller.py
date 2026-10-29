@@ -213,12 +213,29 @@ class PlaybackController:
 
         eng = self.engine
         has_phase = hasattr(store, "phase")
+        # F7 — CAPTURE THE PLAN BEFORE TOUCHING THE ENGINE. The phase
+        # branch below must be decided from a snapshot taken before the
+        # first IPC command: the deploy burst spends tens of
+        # milliseconds (clear + N adds) during which a concurrent
+        # observer tick (the watcher's first /status poll inside the
+        # restore window) may legally rewrite the LIVE store (an idle
+        # fact folding 'playing' -> 'stopped'). Deciding from the
+        # captured plan makes the branch immutable; F7's source-lock
+        # (granted below on ack) additionally keeps later ticks from
+        # demolishing the just-applied picture. (The T3 retomada
+        # regression read `phase` mid-burst, after the wipe had
+        # landed — a 50 ms alignment coin flip between runs.)
+        phase = PHASE_PLAYING  # effective phase (legacy default)
+        if has_phase:
+            phase = store.phase
+        st = dict(store.settings)
+        items_snap = list(store.items)
         try:
             eng.cmd(["playlist-clear"])
-            for i, (item, url) in enumerate(zip(store.items, urls)):
+            for i, (item, url) in enumerate(zip(items_snap, urls)):
                 eng.cmd(["playlist-add", url, i, item.id])
             start = store.index
-            if start is None or not (0 <= start < len(store.items)):
+            if start is None or not (0 <= start < len(items_snap)):
                 start = 0
         except Exception as exc:
             self.spy.event_sync("store_apply_failed",
@@ -229,7 +246,6 @@ class PlaybackController:
         phase = PHASE_PLAYING  # effective phase (legacy default)
         try:
             if has_phase:
-                phase = store.phase
                 # A5: the settings mirror BEFORE the start so the first
                 # entry inherits them (whichever phase branch runs).
                 if st.get("volume") is not None:
@@ -268,6 +284,16 @@ class PlaybackController:
             return False
 
         store.pending_restore = False
+        ras = getattr(store, "restore_armed", None)
+        if ras:
+            store.restore_armed = False
+        if has_phase:
+            # F7 — the picture is (re-)established: protect the fresh
+            # playing/paused phase against an observation-demote while
+            # the engine settles (see QueueStore.lock_phase_source).
+            lsp = getattr(store, "lock_phase_source", None)
+            if lsp is not None:
+                lsp("apply")
         if has_phase and phase != PHASE_PLAYING:
             # A5: the restored state was deliberately NOT brought back
             # to audio (paused picture or parked list) — recorded as a

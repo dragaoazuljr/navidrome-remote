@@ -25,12 +25,66 @@ import json
 import os
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import tempfile
 import time
 import urllib.parse
 import urllib.request
+
+# ----------------------------------------------------------------- browser
+# Zombie defense (incident 2026-10-29): a run killed mid-flight (dispatcher
+# budget kill / OOM) orphaned its headless Chrome — ~10 browsers / ~4 GB
+# accumulated on the 8 GB LXC and starved every later E2E run (flaky
+# media events, spurious reds). Chrome therefore runs in its OWN process
+# group (start_new_session) and registers a pgid marker; every launch
+# sweeps STALE markers from dead runs first, and shutdown kills the whole
+# group (main + renderers) and removes its own marker.
+CHROME_MARKER_DIR = os.path.join(tempfile.gettempdir(), "nvra-chrome-pgids")
+
+
+def _pgid_alive(pgid: int) -> bool:
+    try:
+        os.kill(pgid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+    except OSError:
+        return False
+
+
+def sweep_stale_chrome_groups(except_pid: int = 0) -> int:
+    """Kill process groups left behind by dead runs. Returns the number
+    of living groups killed (0 = nothing stale)."""
+    killed = 0
+    try:
+        entries = os.listdir(CHROME_MARKER_DIR)
+    except FileNotFoundError:
+        return 0
+    for name in entries:
+        if not name.endswith(".pgid"):
+            continue
+        path = os.path.join(CHROME_MARKER_DIR, name)
+        try:
+            with open(path, "r", encoding="ascii") as fh:
+                pgid = int(fh.read().strip())
+        except (OSError, ValueError):
+            continue
+        if pgid == except_pid:
+            continue
+        if _pgid_alive(pgid):
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+                killed += 1
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+    return killed
+
 
 # ------------------------------------------------------------------ redact
 CDP_REDACTIONS = (
@@ -352,13 +406,37 @@ class BrowserDriver:
         self.udd = os.path.join(tempfile.gettempdir(), f"nvra-chrome-{os.getpid()}")
         os.makedirs(self.udd, exist_ok=True)
         port = port or _free_port()
+        flags = ["--headless=new", "--disable-gpu",
+                 "--no-first-run", "--no-default-browser-check",
+                 "--disable-dev-shm-usage",
+                 # test-harness determinism: the harness drives the player
+                 # with programmatic clicks (no real user activation), so
+                 # the autoplay policy would veto play()/pause() round
+                 # trips and hide the very events under test.
+                 "--autoplay-policy=no-user-gesture-required",
+                 f"--remote-debugging-port={port}", f"--user-data-dir={self.udd}"]
+        if os.geteuid() == 0:
+            # root (container/LXC): Chrome refuses to run without disabling
+            # the sandbox setuid machinery.
+            flags += ["--no-sandbox", "--disable-setuid-sandbox"]
+        os.makedirs(CHROME_MARKER_DIR, exist_ok=True)
+        n_killed = sweep_stale_chrome_groups()
+        if n_killed:
+            print(f"[cdp] varreu {n_killed} grupo(s) Chrome órfeno(s) "
+                  f"de execuções mortas antes do launch", flush=True)
         self.proc = subprocess.Popen(
-            [self.chrome_bin, "--headless=new", "--disable-gpu",
-             "--no-first-run", "--no-default-browser-check",
-             f"--remote-debugging-port={port}", f"--user-data-dir={self.udd}"],
+            [self.chrome_bin] + flags,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             bufsize=1, universal_newlines=True,
+            start_new_session=True,  # own process group (zombie defense)
         )
+        try:
+            with open(os.path.join(
+                    CHROME_MARKER_DIR, f"{self.proc.pid}.pgid"),
+                    "w", encoding="ascii") as fh:
+                fh.write(str(self.proc.pid))
+        except OSError:
+            pass
         deadline = time.time() + 25
         banner = ""
         leftovers = []
@@ -382,18 +460,31 @@ class BrowserDriver:
         self.origin = f"http://127.0.0.1:{p.port}"
 
     def shutdown(self) -> None:
-        if self.proc is not None:
+        proc = self.proc
+        if proc is not None:
             try:
-                if self.proc.poll() is None:
-                    self.proc.terminate()
+                if proc.poll() is None:
+                    proc.terminate()
                     try:
-                        self.proc.wait(5)
+                        proc.wait(5)
                     except subprocess.TimeoutExpired:
-                        self.proc.kill()
+                        proc.kill()
             except OSError:
+                pass
+            # kill the WHOLE group (renderers are children of the group
+            # leader) and dissolve the marker — no orphans on exit.
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
                 pass
         if self.udd:
             shutil.rmtree(self.udd, ignore_errors=True)
+        if proc is not None:
+            try:
+                os.unlink(os.path.join(
+                    CHROME_MARKER_DIR, f"{proc.pid}.pgid"))
+            except OSError:
+                pass
 
     def new_tab(self, url: str, loop: asyncio.AbstractEventLoop) -> "Tab":
         q = urllib.parse.quote(url, safe="")

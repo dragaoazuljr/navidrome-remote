@@ -225,6 +225,19 @@ class QueueStore:
         self._wthread: "threading.Thread | None" = None
 
         self.pending_restore = False
+        # F7b — the RESTORE-window latch: armed ONLY by the loader
+        # (an image read from disk that must (re)appear on the engine)
+        # and cleared when the apply acknowledges. Plain user
+        # transactions (replace/append/note_replacement) set
+        # `pending_restore` for the lazy apply's benefit but do NOT
+        # arm the restore window: in those cases the service and
+        # engine are alive and observations keep the A5 continuous-
+        # state contract (the A6.2 overload blocked them and broke
+        # the A5 close-drain/round-trip persistence).
+        self.restore_armed = False
+        # F7 — race fences (in-memory only, see lock_phase_source).
+        self._phase_source = "user"
+        self._apply_since = 0.0
         self._loaded = self._load()
         # A5 wear budget: the EARLIEST timestamp of the NEXT physical
         # write. The writer thread sleeps until the slot, and a wake
@@ -306,6 +319,7 @@ class QueueStore:
             self.phase = PHASE_PLAYING
 
         self.pending_restore = bool(items)
+        self.restore_armed = bool(items)
         return True
 
     def _quarantine(self, reason: str) -> None:
@@ -590,6 +604,32 @@ class QueueStore:
                 self.settings["repeat"] = repeat
         self._mutate(fn, force=True)
 
+    # F7 — how long a (re)apply keeps the phase locked against
+    # observation-demote. Long enough to cover engine deploy + settle
+    # latency under load; a natural stop landing after this window is
+    # folded normally.
+    APPLY_LOCK_S = 20.0
+
+    def lock_phase_source(self, source: str) -> None:
+        """F7 — record WHO last decided the transport phase.
+
+        'apply': the restore apply (re-)established the picture (the
+        engine is transiently idle around a (re)deploy); 'user': an
+        explicit user transaction; 'obs': a folded observation. While
+        'apply' is fresh (< APPLY_LOCK_S), `track_observed` may not
+        demote a playing/paused phase to 'stopped' — the idle fact in
+        that window is a transient of the deploy, not an intent
+        (the T3 retomada regression: a watcher's first /status tick
+        landed milliseconds after the apply acknowledged and rewrote
+        'playing' into 'stopped', parking the engine). The lock is a
+        race fence in memory only — the persisted phase remains the
+        record. A user gesture (`set_phase(force=True)`) unlocks.
+        """
+        if source in ("apply", "user", "obs"):
+            self._phase_source = source
+            self._apply_since = time.monotonic() if source == "apply" \
+                else 0.0
+
     def set_phase(self, phase: str, force: bool = True) -> None:
         """Record the transport phase (A5).
 
@@ -609,6 +649,11 @@ class QueueStore:
             if target == PHASE_STOPPED:
                 self.pos = None
                 self.cur_track = None
+            if force:
+                # F7 — a user transaction IS the newest fact: unlock
+                # any apply-imposed protection.
+                self._phase_source = "user"
+                self._apply_since = 0.0
         self._mutate(fn, force=force)
 
     def set_position(self, pos: "float | None", force: bool = False) -> None:
@@ -645,15 +690,45 @@ class QueueStore:
         """
         if self.version_locked:
             return
+        if self.restore_armed:
+            # A6.2 (F7b) — the RESTORE window: while a LOADED picture
+            # is not yet applied, the engine is TRANSIENTLY idle (or
+            # mid-apply) — that is not the user's transport intent.
+            # Folding such an observation would rewrite the awaited
+            # phase (e.g. paused-mid-track -> "stopped") and erase the
+            # position anchor BEFORE the lazy apply lands, turning a
+            # present/positioned restore into a parked no-op. The
+            # regression was invisible to per-command sampling (a torn
+            # read often delivered `idle=None` and skipped the wipe)
+            # and was exposed by the atomic batch, which makes the
+            # `idle` fact always arrive. Observations resume the moment
+            # the apply acknowledges (apply_queue clears the flag).
+            return
         idle = props.get("idle")
         active = False
         if idle is not None:
             active = not (idle if isinstance(idle, bool)
                           else str(idle).lower() in ("yes", "true", "1"))
         if not active:
+            # F7 — apply-imposed fence: the engine is TRANSIENTLY idle
+            # around a (re)deploy for < APPLY_LOCK_S; folding
+            # 'stopped' in that window is the T3 retomada regression
+            # (a watcher tick milliseconds after the apply's ack
+            # rewrote an awaited 'playing'/'paused' into 'stopped' and
+            # parked the engine). A natural stop that genuinely
+            # outlives the window, or any user gesture, demotes as
+            # before (set_phase(force=True) resets the source).
+            fresh_apply = (getattr(self, "_phase_source", "user")
+                           == "apply" and self._apply_since > 0.0
+                           and (time.monotonic() - self._apply_since)
+                           < self.APPLY_LOCK_S)
+            if fresh_apply and self.phase in (PHASE_PLAYING,
+                                              PHASE_PAUSED):
+                return
             def fn():
                 if self.phase != PHASE_STOPPED:
                     self.phase = PHASE_STOPPED
+                self._phase_source = "obs"
                 if self.pos is not None or self.cur_track is not None:
                     self.pos = None
                     self.cur_track = None

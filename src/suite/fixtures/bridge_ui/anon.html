@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NDR Bridge UI — anon (pre-login, fixture)</title>
+<script>
+/* Version declaration, the way the official v0.64.2 SPA publishes it
+ * (consumed by the bridge's version gate). */
+window.__APP_CONFIG__ = {version: "0.64.2"};
+</script>
+</head>
+<body>
+<div id="bar" style="position:sticky;top:0;padding:8px;background:#111;color:#eee;">
+  <button id="bprev" aria-label="Previous Track" title="Previous">&#171;</button>
+  <button id="bplay" aria-label="Play" title="Play">&#9658;</button>
+  <button id="bnext" aria-label="Next Track" title="Next">&#187;</button>
+  <button id="bstop" aria-label="Stop" title="Stop">&#9632;</button>
+  <button id="bshuf" aria-label="Shuffle Songs" aria-pressed="false" title="Shuffle">&#54;&#49;</button>
+  <button id="brepeat" aria-label="Repeat" aria-pressed="false" class="rep-off" title="Repeat">&#8635;</button>
+  <input id="rseek" type="range" min="0" max="215" step="1" value="0" aria-label="Seek Bar">
+  <input id="rvol" type="range" min="0" max="100" step="1" value="80" aria-label="Volume">
+  <span id="np" style="margin-left:12px;"></span>
+</div>
+<audio id="ndp" preload="auto"></audio>
+<script>
+(function () {
+  "use strict";
+  /* ------------------------------------------------------------------
+   * Synthetic session — mirrors what the REAL v0.64.2 parks in
+   * localStorage after login: the native JWT under key "token" (plus
+   * "is-authenticated"). The token is DERIVED here, in the page, from
+   * a payload + dummy signature — no value ever crosses the wire or
+   * the filesystem as a literal. Identity: fxt_alice (ordinary user).
+   * ------------------------------------------------------------------ */
+  function b64url(o) {
+    var s = JSON.stringify(o);
+    return btoa(unescape(encodeURIComponent(s)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  var PAYLOAD = {"username": "fxt_alice", "sub": "fxt_alice",
+                 "iat": 1793200000, "exp": 1793805600};
+  /* Pre-login state: no session in localStorage at all — the bridge
+   * must remain fully inert here (and the page must behave exactly as
+   * stock Navidrome does before authentication). */
+  var TOKEN = "";
+  var AUTHENTICATED = false;
+  if (AUTHENTICATED) {
+    localStorage.setItem("token", TOKEN);
+    localStorage.setItem("is-authenticated", "true");
+  } else {
+    localStorage.removeItem("token");
+    localStorage.removeItem("is-authenticated");
+  }
+  window.__TOKEN__ = TOKEN; /* page-local inspection only */
+
+  /* Player emulation — mirrors the NDMP v0.64.2 mechanics the bridge
+   * observes in the wild: streams pulled from /rest/stream?id=... (with
+   * u/t/s, as A2's boot capture documented) feeding one <audio>; user
+   * gestures drive element.play()/pause() and src swaps; sliders drive
+   * currentTime / volume. The 'loadeddata' path also honors a current
+   * track PUSHED BY THE ENGINE SIDE (bridge data-nvr-sync-id), the way
+   * the real player library updates "Now Playing". */
+  var pl = document.getElementById("ndp"),
+      np = document.getElementById("np");
+  var tracks = [
+    {id: "S1", title: "Song One"},
+    {id: "S2", title: "Song Two"},
+    {id: "S3", title: "Song Three"}
+  ];
+  var byId = {S1: 0, S2: 1, S3: 2};
+  var idx = -1;
+  var held = false; /* test lever: suspend the ended-handler
+                      auto-advance (fixture streams are short; a
+                      spontaneous 'ended' is not a user gesture). */
+  var FAKE_T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  var FAKE_S = "bbbbbbbbbbbb";
+  function streamUrl(id) {
+    return "/rest/stream?id=" + id + "&u=fxt_user&t=" + FAKE_T +
+           "&s=" + FAKE_S + "&v=1.12.1&c=navidrome";
+  }
+  function load(id, autostart) {
+    if (byId[id] != null) {
+      idx = byId[id];
+    }
+    np.textContent = id;
+    pl.setAttribute("data-nvr-sync-id", "");
+    pl.src = streamUrl(id);
+    if (autostart !== false) {
+      pl.play().catch(function () {});
+    }
+  }
+  pl.addEventListener("loadeddata", function () {
+    var sid = pl.getAttribute("data-nvr-sync-id");
+    if (sid && byId[sid] != null) {
+      idx = byId[sid];
+      np.textContent = sid;
+    }
+    pl.play().catch(function () {});
+  });
+  pl.addEventListener("ended", function () {
+    if (!held && idx >= 0 && idx < tracks.length - 1) {
+      load(tracks[idx + 1].id);
+    }
+  });
+
+  var bp = document.getElementById("bplay"),
+      bn = document.getElementById("bnext"),
+      bq = document.getElementById("bprev"),
+      bs = document.getElementById("bstop"),
+      bsh = document.getElementById("bshuf"),
+      br = document.getElementById("brepeat"),
+      rseek = document.getElementById("rseek"),
+      rvol = document.getElementById("rvol");
+
+  bp.addEventListener("click", function () {
+    if (idx < 0) {
+      load(tracks[0].id, true);
+      return;
+    }
+    if (pl.paused) {
+      pl.play().catch(function () {});
+    } else {
+      pl.pause();
+    }
+  });
+  bn.addEventListener("click", function () {
+    load(tracks[(Math.min(idx, tracks.length - 1) + 1) % tracks.length].id, true);
+  });
+  bq.addEventListener("click", function () {
+    load(tracks[((idx < 0 ? 0 : idx) - 1 + tracks.length) % tracks.length].id, true);
+  });
+  bs.addEventListener("click", function () {
+    pl.pause();
+    pl.currentTime = 0;
+    np.textContent = "\u2014";
+  });
+  bsh.addEventListener("click", function () {
+    var on = bsh.getAttribute("aria-pressed") === "true";
+    bsh.setAttribute("aria-pressed", on ? "false" : "true");
+  });
+  (function () {
+    var order = ["rep-off", "rep-all", "rep-one"];
+    var i = 0;
+    br.addEventListener("click", function () {
+      i = (i + 1) % order.length;
+      br.className = order[i];
+      br.setAttribute("aria-pressed", order[i] === "rep-off" ? "false" : "true");
+    });
+  })();
+  rseek.addEventListener("change", function () {
+    pl.currentTime = parseFloat(rseek.value) || 0;
+  });
+  rvol.addEventListener("change", function () {
+    pl.volume = (parseFloat(rvol.value) || 0) / 100;
+  });
+
+  /* Test seam (invokes the real DOM elements — same event path a user
+   * gesture takes; nothing here bypasses the bridge's listeners). */
+  window.__FIX__ = {
+    pressPlay: function () { bp.click(); },
+    pressNext: function () { bn.click(); },
+    pressPrev: function () { bq.click(); },
+    holdEnded: function (v) { held = !!v; },
+    prime: function (id) {
+      /* Deterministic starting point for scripted gestures: park
+         the page on `id` (mirroring the engine's current track)
+         and freeze auto-advance, so the next click is the SOLE
+         source of a src swap. */
+      held = true;
+      idx = (byId[id] != null) ? byId[id] : 0;
+      np.textContent = id;
+      pl.setAttribute("data-nvr-sync-id", "");
+      pl.src = streamUrl(id);
+    },
+    pressStop: function () { bs.click(); },
+    pressShuffle: function () { bsh.click(); },
+    pressRepeat: function () { br.click(); },
+    setSeek: function (v) {
+      rseek.value = v;
+      /* faithful gesture: a drag fires 'input' (movement) then
+         'change' (release); the bridge learns the slider on either. */
+      rseek.dispatchEvent(new Event("input", {bubbles: true}));
+      rseek.dispatchEvent(new Event("change", {bubbles: true}));
+    },
+    setVol: function (v) {
+      rvol.value = v;
+      rvol.dispatchEvent(new Event("input", {bubbles: true}));
+      rvol.dispatchEvent(new Event("change", {bubbles: true}));
+    },
+    state: function () {
+      return JSON.stringify({
+        np: np.textContent,
+        paused: pl.paused,
+        cur: (pl.currentSrc || "").slice(0, 90),
+        muted: pl.muted,
+        vol: pl.volume,
+        ct: pl.currentTime,
+        dur: pl.duration,
+        seekVal: rseek.value,
+        volVal: rvol.value,
+        syncId: pl.getAttribute("data-nvr-sync-id"),
+        shufPressed: bsh.getAttribute("aria-pressed"),
+        repClass: br.className,
+        bridge: !!window.__NVRA_BRIDGE__,
+        badge: !!document.getElementById("__nvr_bridge_badge")
+      });
+    }
+  };
+})();
+</script>
+</body>
+</html>

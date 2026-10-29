@@ -13,12 +13,21 @@ Routes offered (all on one port, per path):
   GET  /css/main.css    -> 200 text/css + ACAO:*          (passthrough, no injection)
   GET  /opts/           -> 200 (ACAO/ACAM/ACAH) for OPTIONS too
   POST /login           -> 200 + Set-Cookie: nd_session=SEKRET; Path=/; HttpOnly
-  GET  /rest/ping       -> 200 with Cookie, 401 without   (session mechanics)
+  GET  /rest/ping       -> 200 with Cookie, 401 without    (session mechanics)
   GET  /rest/getIndexes -> Subsonic probe endpoint (M1 gate): 200 for a
                              recognized session (u/t, JWT, cookie), 401
                              code-40 otherwise; probe_route_404=True makes
                              it vanish entirely (anchor-break FAIL-CLOSED
                              test)
+  GET  /rest/stream     -> 200 audio/wav SILENCE (A6): any request shape —
+                             the fake's audio "delivery" is a generated
+                             zero-WAV (tiny, in-memory), enough for a media
+                             element to load; no real bytes are synthesized.
+  GET  /fixtures/<n>.html -> static pages (A6): served from the suite's
+                             fixtures/bridge_ui/ directory — the browser-
+                             level E2E exercises them THROUGH the proxy
+                             (bridge.js is injected into them like into any
+                             upstream document).
   GET  /ws              -> RFC6455 echo (prepends "echo:") (cláusula B i)
 
 The document served contains `<head><title>FakeNav</title></head>` so the
@@ -32,6 +41,7 @@ import base64
 import gzip
 import hashlib
 import json
+import os
 from urllib.parse import parse_qsl
 
 from navidrome_remote.http1 import read_head, read_request_body
@@ -43,6 +53,33 @@ DOC_PLAIN = (
 ).encode()
 
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+# ---------------------------------------------------------------- A6
+# Zero-filled WAV (8 kHz, 16-bit mono, 0.5 s): the "audio" this fake
+# hands out for /rest/stream. Generated once at import time — it is a
+# stand-in for real audio bytes (C1: no audio validation), and it makes
+# a media element progress normally (loadeddata/playing) without any
+# external content.
+def _make_silence_wav(seconds: float = 0.5, sr: int = 8000) -> bytes:
+    import struct
+
+    n = int(sr * seconds)
+    fmt = struct.pack("<IIHHII", 16, 1, sr, sr * 2, 2, 16)
+    data = b"\x00\x00" * n
+    return (
+        b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVE"
+        + b"fmt " + fmt
+        + b"data" + struct.pack("<I", len(data)) + data
+    )
+
+
+SILENCE_WAV = _make_silence_wav()
+
+# A6 fixture pages (bridge_UI) live next to the E2E suite.
+_FIXTURE_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "..", "suite", "fixtures", "bridge_ui")
+)
 
 
 class FakeUpstream:
@@ -186,6 +223,34 @@ class FakeUpstream:
                 ],
                 b"auth-required",
             )
+        if rq.method == "GET" and p == "/rest/stream":
+            # A6: the "audio delivery" of the fake. One small silence
+            # file answers every shape (with or without Range — the
+            # whole 8-KB payload fits a single datagram-sized read, so
+            # a 200 full-body answer satisfies ranged clients too).
+            return self._cl(
+                200,
+                "audio/wav",
+                SILENCE_WAV,
+                extra=[
+                    ("access-control-allow-origin", "*"),
+                    ("accept-ranges", "bytes"),
+                ],
+            )
+        if rq.method == "GET" and p.startswith("/fixtures/"):
+            name = p[len("/fixtures/"):]
+            safe = ("/" not in name) and (name.endswith(".html"))
+            fp = os.path.join(_FIXTURE_DIR, name) if safe else ""
+            if fp and os.path.isfile(fp):
+                with open(fp, "rb") as fh:
+                    return self._cl(
+                        200,
+                        "text/html; charset=utf-8",
+                        fh.read(),
+                        extra=[("access-control-allow-origin", "*")],
+                    )
+            return self._reply(
+                404, [("content-type", "text/plain")], b"fixture-not-found")
         if rq.method == "GET" and p == "/ws":
             key = rq.headers.get_first("sec-websocket-key") or ""
             accept = base64.b64encode(hashlib.sha1((key + WS_GUID).encode()).digest()).decode()
