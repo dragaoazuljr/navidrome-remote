@@ -48,6 +48,9 @@ class Config:
     nav_user: str = ""               # Subsonic service account (never in KB)
     nav_pass: str = ""
     state_file: str = "/var/lib/navidrome-remote/state.json"  # M1 queue/state store
+    state_write_interval: float = 1.0   # A5 — coalescing window (s) that bounds
+                                        # continuous state observations; discrete
+                                        # transactions still flush synchronously
     max_request_bytes: int = 16 * 1024 * 1024   # upload/cover-art ceiling
     max_html_bytes: int = 4 * 1024 * 1024       # SPA document ceiling
     keepalive_idle: float = 60.0                # s to wait for the next request on a

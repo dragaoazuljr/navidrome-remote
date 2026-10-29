@@ -1,6 +1,12 @@
 # navidrome-remote-mpv.service — motor de playback REAL (C3 / 2W + DAC)
 # Mesmo contrato IPC do mock: socket Unix JSON-IPC; o serviço único só conhece
 # o CAMINHO do socket (NVRA_MPV_SOCKET) — código agnóstico entre beds.
+#
+# Gapless (A4.2-C1, carried by the A5 PR): --gapless=yes IS mpv's default; it
+# is PINNED here explicitly so nobody deletes it by accident. Handoff quality
+# between entries is a property of the FILES (sample-rate/layout mismatches),
+# bounded by mpv's gapless engine — never promised away from the control
+# plane; the residue is MEASURED (event spacing) in C1/C3.
 [Unit]
 Description=Navidrome Remote — mpv playback engine (idle, JSON-IPC)
 After=network.target
@@ -11,7 +17,8 @@ Type=simple
 EnvironmentFile=-/etc/navidrome-remote/env
 User=navidrome-remote
 Group=navidrome-remote
-ExecStart=/usr/bin/mpv --idle=yes --really-quiet --input-ipc-server=${NVRA_MPV_SOCKET}
+# --gapless=yes: default of mpv, made explicit (A4.2-C1 / A5)
+ExecStart=/usr/bin/mpv --idle=yes --really-quiet --gapless=yes --input-ipc-server=${NVRA_MPV_SOCKET}
 Restart=always
 RestartSec=2
 NoNewPrivileges=true

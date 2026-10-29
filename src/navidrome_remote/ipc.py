@@ -102,56 +102,73 @@ class MpvEngine:
         return self._cmd_impl(*args, timeout=timeout)
 
     def _cmd_impl(self, *args, timeout: float = 5.0) -> dict:
+        # CONCURRENT-SAFE BY DESIGN (A5 — corridas serializadas, nula
+        # perda): the ENTIRE request/response exchange (counter, send,
+        # reply wait) happens under a single per-engine lock. Before
+        # this, only the counter was guarded; two concurrent callers
+        # (e.g. the 5 s state tracker and a /status handler) shared the
+        # same datagram socket, one side's recv() could eat the other's
+        # reply, the victim burned its 5 s window plus the 10 s retry
+        # inside cmd(), and the HTTP handler stalled — a lost-update
+        # class fault on the control plane. Serializing exchanges costs
+        # nothing at control-plane volume (a few dozen packets/min) and
+        # makes the engine safe for any number of concurrent drivers.
+        # (PT-BR: a troca inteira — contador, envio e espera da
+        # resposta — ocorre sob o lock do engine; dois chamadores
+        # concorrentes nunca mais disputam o socket de reply.)
         with self._lock:
             self._req_counter += 1
             rid = self._req_counter
-        if len(args) == 1 and isinstance(args[0], (list, tuple)):
-            command = list(args[0])  # tolerate cmd([...]) as well as cmd(*)
-        else:
-            command = list(args)
-        msg = {"command": command, "request_id": rid}
-        if self.reply_path:
-            msg["nvr-reply-to"] = self.reply_path
-        payload = json.dumps(msg, separators=(",", ":")) + "\n"
-        sock = self._ensure()
-        try:
-            sock.send(payload.encode())
-        except (FileNotFoundError, ConnectionRefusedError, BrokenPipeError, OSError) as exc:
-            self.close()
-            raise EngineDown(str(exc)) from exc
-        deadline = time.monotonic() + timeout
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise RuntimeError(f"tempo esgotado aguardando resposta do engine (req {rid})")
+            if len(args) == 1 and isinstance(args[0], (list, tuple)):
+                command = list(args[0])  # tolerate cmd([...]) as well as cmd(*)
+            else:
+                command = list(args)
+            msg = {"command": command, "request_id": rid}
+            if self.reply_path:
+                msg["nvr-reply-to"] = self.reply_path
+            payload = json.dumps(msg, separators=(",", ":")) + "\n"
+            sock = self._ensure()
             try:
-                sock.settimeout(max(0.05, min(remaining, 0.5)))
-                raw = sock.recv(65536)
-            except socket.timeout:
-                continue
-            except (OSError,) as exc:
+                sock.send(payload.encode())
+            except (FileNotFoundError, ConnectionRefusedError,
+                    BrokenPipeError, OSError) as exc:
                 self.close()
                 raise EngineDown(str(exc)) from exc
-            if not raw:
-                continue
-            for msg in raw.decode(errors="replace").split("\n"):
-                msg = msg.strip()
-                if not msg:
-                    continue
+            deadline = time.monotonic() + timeout
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError(
+                        f"tempo esgotado aguardando resposta do engine (req {rid})")
                 try:
-                    obj = json.loads(msg)
-                except json.JSONDecodeError:
+                    sock.settimeout(max(0.05, min(remaining, 0.5)))
+                    raw = sock.recv(65536)
+                except socket.timeout:
                     continue
-                if obj.get("request_id") == rid:
-                    self.last_contact = time.time()
-                    if obj.get("error") not in (None, "success"):
-                        raise RuntimeError(f"engine recusou: {obj.get('error')} :: {obj}")
-                    return obj
-                if "event" in obj and self.event_observer is not None:
+                except (OSError,) as exc:
+                    self.close()
+                    raise EngineDown(str(exc)) from exc
+                if not raw:
+                    continue
+                for piece in raw.decode(errors="replace").split("\n"):
+                    piece = piece.strip()
+                    if not piece:
+                        continue
                     try:
-                        self.event_observer(obj)
-                    except Exception:
-                        pass
+                        obj = json.loads(piece)
+                    except json.JSONDecodeError:
+                        continue
+                    if obj.get("request_id") == rid:
+                        self.last_contact = time.time()
+                        if obj.get("error") not in (None, "success"):
+                            raise RuntimeError(
+                                f"engine recusou: {obj.get('error')} :: {obj}")
+                        return obj
+                    if "event" in obj and self.event_observer is not None:
+                        try:
+                            self.event_observer(obj)
+                        except Exception:
+                            pass
 
     # ------------------------------------------------------------ conveniences
     def get_property(self, name: str) -> "object":

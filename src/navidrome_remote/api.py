@@ -6,11 +6,16 @@ Routes (complete contract, card A3)
   GET  /api/v1/status    playback state + queue/settings view.
   POST /api/v1/play      play a song id (server-built stream URL) or an
                          explicit url (M0' compat; see design doc).
-  POST /api/v1/pause     pause.
-  POST /api/v1/resume    unpause.
+  POST /api/v1/pause     pause (recorded: a restart re-applies the
+                         paused picture — A5).
+  POST /api/v1/resume    unpause; A5: ALSO starts a PARKED list (an
+                         idle engine holding a non-empty queue) — an
+                         idle engine obeys no implicit `pause false`;
+                         graceful no-op when there is nothing to resume.
   POST /api/v1/next      playlist-next.
   POST /api/v1/prev      playlist-prev (`previous` accepted as alias).
-  POST /api/v1/stop      stop (playlist intent is remembered by the store).
+  POST /api/v1/stop      stop (recorded: a restart loads the list
+                         PARKED — zero unexpected audio after boot).
   POST /api/v1/seek      {"pos": seconds}.
   POST /api/v1/shuffle   {"value": bool} or bare call = toggle.
   POST /api/v1/repeat    {"mode": off|track|playlist} (aliases: all, one).
@@ -254,9 +259,24 @@ class Api:
         if method == "POST" and path == "/api/v1/play":
             return await self._play(payload)
         if method == "POST" and path == "/api/v1/pause":
-            return await self._toggle_pause(True)
+            # A5 — POLICY (records are facts): persist the "paused"
+            # phase ONLY when the engine is actively presenting a track
+            # (alive, not idle, non-empty list). A pause on an IDLE
+            # engine changes nothing there, so there is no phase to
+            # record — and a phantom "paused" would be worse than none
+            # (a restart would try to resurrect a pause that never
+            # existed). The TRANSPORT always emits its one stock
+            # command (the A4 contract lives in controller.pause); a
+            # dead engine still 503s through `handle()` below.
+            presenting = await self._engine_presenting()
+            await asyncio.to_thread(self.controller.pause, True)
+            if presenting:
+                sp = getattr(self.store, "set_phase", None)
+                if sp is not None:
+                    sp("paused", force=True)  # discrete tx — sync flush
+            return _json(200, {"ok": True, "pause": True})
         if method == "POST" and path == "/api/v1/resume":
-            return await self._toggle_pause(False)
+            return await self._resume()
         if method == "POST" and path in ("/api/v1/next",):
             if not await self._engine_has_track():
                 await self.spy.event("api_engine_idle", path=path)
@@ -275,6 +295,13 @@ class Api:
             return _json(200, {"ok": True, "index": self.store.index})
         if method == "POST" and path == "/api/v1/stop":
             await asyncio.to_thread(self.controller.stop)
+            sp = getattr(self.store, "set_phase", None)
+            if sp is not None:
+                # A5: stopping is DELIBERATE silence — record it (the
+                # position anchor is wiped inside set_phase). On a
+                # service restart the list loads PARKED: zero unexpected
+                # audio after boot (ADR-004).
+                sp("stopped", force=True)
             return _json(200, {"ok": True, "cmd": "stop"})
         if method == "POST" and path == "/api/v1/seek":
             return await self._seek(payload)
@@ -400,6 +427,14 @@ class Api:
         settings["index"] = self.store.index
         view["settings"] = settings
         view["engine"] = self._engine_state()
+        # A5 — additive transparency of the persisted picture (plain
+        # scalars only, nothing secret crosses): the TRANSPORT PHASE a
+        # restart will re-apply, the last observed position, and the
+        # monotonic revision counter (proof the record ADVANCES under
+        # concurrent writers — zero lost updates, ADR-004).
+        view["phase"] = getattr(self.store, "phase", "playing")
+        view["pos"] = getattr(self.store, "pos", None)
+        view["seq"] = getattr(self.store, "seq", 0)
         return _json(200, view)
 
     def _queue_view(self, with_items: bool,
@@ -428,6 +463,20 @@ class Api:
         except StoreError as exc:
             await self.spy.event("api_store_rejected", path="/api/v1/queue", error=str(exc))
             return _json(400, {"error": str(exc)})
+
+        if mode == "replace":
+            sp = getattr(self.store, "set_phase", None)
+            if sp is not None:
+                # ADR-004 (A5): replacing the queue is an explicit INTENT
+                # to listen — the transport phase is set to playing
+                # whether or not the engine can start it RIGHT NOW (the
+                # 503 pending path below keeps the intent PENDING so the
+                # restore loop ships it when the engine comes up; a
+                # service restart finds the same intention). `append`
+                # deliberately leaves the phase untouched: stacking
+                # entries onto a PAUSED list does not make the user
+                # listen.
+                sp("playing", force=True)
 
         if not (self.cfg.nav_user and self.cfg.nav_pass):
             return _json(501, {"error": "credentials-missing",
@@ -475,9 +524,40 @@ class Api:
         # (smallest lawful surface).
         return _json(200, {"ok": True, "kind": kind})
 
-    async def _toggle_pause(self, value: bool):
-        await asyncio.to_thread(self.controller.pause, bool(value))
-        return _json(200, {"ok": True, "pause": bool(value)})
+    async def _engine_presenting(self) -> bool:
+        """A5 — "is the engine actively presenting a track right now"
+        (alive, not idle, non-empty list — the controller's
+        active_with_track, off the event loop). Down engines abort the
+        probe gracefully here (False) — the SUBSEQUENT transport call
+        is what turns an engine-down into the standard 503 via
+        `handle()`, keeping one owner for each signal."""
+        try:
+            return await asyncio.to_thread(
+                self.controller.active_with_track)
+        except (RuntimeError, Exception):
+            return False
+
+    async def _resume(self):
+        """A5 — the phase-aware resume (full contract in
+        `controller.MPVPlaybackController.resume`).
+
+        The engine may be presenting (a) a paused FILE (lift the
+        pause), (b) a PARKED LIST — an idle engine holding a non-empty
+        queue, the classic trap: a plain `pause false` would leave it
+        SILENT forever (an idle engine obeys neither an implicit
+        unpause nor a hidden autoplay) — so /resume STARTS it at the
+        persisted index, or (c) nothing at all (graceful no-op: a ghost
+        request must never 500 the user). The store's phase is aligned
+        by the controller with what actually happened."""
+        try:
+            action = await asyncio.to_thread(self.controller.resume)
+        except Exception as exc:
+            await self.spy.event("api_resume_failed",
+                                 error=type(exc).__name__)
+            return _json(503, {"error": "engine-down",
+                               "detail": "motor indisponível — nada foi alterado"})
+        await self.spy.event("api_resumed", action=action)
+        return _json(200, {"ok": True, "pause": False, "action": action})
 
     async def _seek(self, payload: dict):
         pos = payload.get("pos", payload.get("position"))
