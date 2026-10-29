@@ -40,7 +40,33 @@ Responsibilities (card A4 acceptance)
      in deploy/navidrome-remote-mpv.service). Cross-format silence is a
      property of the FILES (sample-rate/layout mismatch), bounded by
    mpv's gapless engine, not fixable from the control plane: the residue
-   is MEASURED (event spacing) in C1/C3, never promised away.
+     is MEASURED (event spacing) in C1/C3, never promised away.
+
+5. RETOMADA (A5 — crash-safe restart semantics)
+   * `apply_queue` is PHASE-AWARE: it reads the transport phase the
+     store last recorded (A5 schema v2 — playing / paused / stopped)
+     and re-applies the queue accordingly:
+       playing  -> start at the persisted index, then a best-effort
+                  `seek` to the persisted position — applied ONLY when
+                  that position is anchored to the exact track being
+                  started (`cur_track` must match the item id) and
+                  clamped to the loaded duration;
+       paused   -> the start-in-pause idiom: `pause` is armed BEFORE
+                  `playlist-play`, so the engine presents the very
+                  "paused mid-track" picture the user left behind (a
+                  bare `pause` on an idle engine would never start the
+                  file); settings are mirrored BEFORE the start in the
+                  phase-aware path, so the first entry inherits them;
+       stopped  -> the list is loaded PARKED (idle engine holding the
+                  list): a crash must never surprise the listener with
+                  audio it was told to stop.
+     Stores that predate the phase field (A4-era test stubs) keep the
+     legacy contract exactly: start first, settings mirror after.
+   * `resume()` closes the trap: a /resume against a PARKED engine
+     (idle, non-empty list — the "stopped" case, or an engine that
+     stopped on its own) must start the list at the persisted index;
+     a genuinely paused file merely lifts `pause`; an empty list is a
+     graceful no-op.
 
 Credential invariant (unchanged from A3): stream URLs are composed HERE
 (server side) from id + service account and never leave the process —
@@ -52,6 +78,9 @@ wrap with `asyncio.to_thread` — the Api layer does.
 """
 
 from __future__ import annotations
+
+from .queue import PHASE_PAUSED, PHASE_PLAYING, PHASE_STOPPED
+
 
 class ReconcileResult:
     """Outcome of one engine->store reconciliation pass."""
@@ -150,6 +179,14 @@ class PlaybackController:
         outcome is the same: the first entry (or the persisted index)
         plays, the rest wait in the queue. Returns True iff the engine
         acked the whole batch.
+
+        A5 — the same protocol becomes PHASE-AWARE (module docstring
+        5.): stores that carry a recorded transport phase re-apply it
+        (playing -> play + anchored best-effort seek; paused ->
+        pre-armed pause, then play; stopped -> park). The settings
+        mirror moves BEFORE the start in that branch so the first
+        entry inherits the knobs. Stores without a phase field (A4-era
+        stubs) keep the original sequence verbatim.
         """
         from .api import subsonic_stream_url
 
@@ -175,36 +212,186 @@ class PlaybackController:
             return False
 
         eng = self.engine
+        has_phase = hasattr(store, "phase")
+        # F7 — CAPTURE THE PLAN BEFORE TOUCHING THE ENGINE. The phase
+        # branch below must be decided from a snapshot taken before the
+        # first IPC command: the deploy burst spends tens of
+        # milliseconds (clear + N adds) during which a concurrent
+        # observer tick (the watcher's first /status poll inside the
+        # restore window) may legally rewrite the LIVE store (an idle
+        # fact folding 'playing' -> 'stopped'). Deciding from the
+        # captured plan makes the branch immutable; F7's source-lock
+        # (granted below on ack) additionally keeps later ticks from
+        # demolishing the just-applied picture. (The T3 retomada
+        # regression read `phase` mid-burst, after the wipe had
+        # landed — a 50 ms alignment coin flip between runs.)
+        phase = PHASE_PLAYING  # effective phase (legacy default)
+        if has_phase:
+            phase = store.phase
+        st = dict(store.settings)
+        items_snap = list(store.items)
         try:
             eng.cmd(["playlist-clear"])
-            for i, (item, url) in enumerate(zip(store.items, urls)):
+            for i, (item, url) in enumerate(zip(items_snap, urls)):
                 eng.cmd(["playlist-add", url, i, item.id])
             start = store.index
-            if start is None or not (0 <= start < len(store.items)):
+            if start is None or not (0 <= start < len(items_snap)):
                 start = 0
-            eng.cmd(["playlist-play", start])
         except Exception as exc:
             self.spy.event_sync("store_apply_failed",
                                 reason="ipc", error=str(exc))
             return False
 
         try:
-            st = store.settings
-            if st.get("volume") is not None:
-                eng.cmd(["set_property", "volume", float(st["volume"])])
-            eng.cmd(["set_property", "shuffle",
-                     int(bool(st.get("shuffle")))])
-            loop_file, loop_pl = REPEAT_PLAN[(st.get("repeat") or "off")]
-            eng.cmd(["set_property", "loop-file", loop_file])
-            eng.cmd(["set_property", "loop-playlist", loop_pl])
+            if has_phase:
+                # A5: the settings mirror BEFORE the start so the first
+                # entry inherits them (whichever phase branch runs).
+                if st.get("volume") is not None:
+                    eng.cmd(["set_property", "volume", float(st["volume"])])
+                eng.cmd(["set_property", "shuffle",
+                         int(bool(st.get("shuffle")))])
+                loop_file, loop_pl = REPEAT_PLAN[(st.get("repeat") or "off")]
+                eng.cmd(["set_property", "loop-file", loop_file])
+                eng.cmd(["set_property", "loop-playlist", loop_pl])
+
+                if phase in (PHASE_PLAYING, PHASE_PAUSED):
+                    if phase == PHASE_PAUSED:
+                        # the start-in-pause idiom: arm `pause` BEFORE
+                        # the play, so the engine presents the exact
+                        # "paused mid-track" picture the user left.
+                        eng.cmd(["set_property", "pause", True])
+                    eng.cmd(["playlist-play", start])
+                    self._resume_position(start)
+                # phase == PHASE_STOPPED: the list stays PARKED in an
+                # idle engine — a crash must never surprise the
+                # listener with audio it was told to stop.
+            else:
+                # A4-era store: the legacy contract, verbatim —
+                # start first, then the settings mirror.
+                eng.cmd(["playlist-play", start])
+                if st.get("volume") is not None:
+                    eng.cmd(["set_property", "volume", float(st["volume"])])
+                eng.cmd(["set_property", "shuffle",
+                         int(bool(st.get("shuffle")))])
+                loop_file, loop_pl = REPEAT_PLAN[(st.get("repeat") or "off")]
+                eng.cmd(["set_property", "loop-file", loop_file])
+                eng.cmd(["set_property", "loop-playlist", loop_pl])
         except Exception as exc:
             self.spy.event_sync("store_apply_failed",
-                                reason="ipc-settings", error=str(exc))
+                                 reason="ipc", error=str(exc))
             return False
 
         store.pending_restore = False
-        self.spy.event_sync("store_apply_ok", items=len(urls))
+        ras = getattr(store, "restore_armed", None)
+        if ras:
+            store.restore_armed = False
+        if has_phase:
+            # F7 — the picture is (re-)established: protect the fresh
+            # playing/paused phase against an observation-demote while
+            # the engine settles (see QueueStore.lock_phase_source).
+            lsp = getattr(store, "lock_phase_source", None)
+            if lsp is not None:
+                lsp("apply")
+        if has_phase and phase != PHASE_PLAYING:
+            # A5: the restored state was deliberately NOT brought back
+            # to audio (paused picture or parked list) — recorded as a
+            # distinct fact so QA can audit "restart == same picture".
+            self.spy.event_sync("store_apply_parked",
+                                phase=phase, items=len(urls))
+        else:
+            self.spy.event_sync("store_apply_ok", items=len(urls))
         return True
+
+    def _resume_position(self, start: int) -> bool:
+        """A5 — best-effort position restore on a (re)started track.
+
+        Fires ONLY when the persisted position is anchored to the exact
+        track being started (`cur_track` equals the item id at
+        `start`): a position captured while a DIFFERENT track was
+        active (the engine advanced between the last observation and
+        the crash) would land in the wrong file. The target is clamped
+        to the loaded duration (defensive probe; when the engine
+        reports no duration the seek goes verbatim and lands at the
+        engine's own EOF boundary — the mock behaves alike). Failure
+        here is a WARNING, never an apply failure: worst case the
+        track simply starts at its head.
+        """
+        store = self.store
+        pos = store.pos
+        if not isinstance(pos, (int, float)) or pos <= 0:
+            return False
+        item = store.items[start] if 0 <= start < len(store.items) else None
+        if item is None or store.cur_track != item.id:
+            # anchor mismatch: the persisted position belongs to a
+            # DIFFERENT track — dropping it would need a mutation; the
+            # next observation pass re-anchors (and resets) the record.
+            return False
+        target = float(pos)
+        try:
+            dur = _to_float(self.engine.get_property("duration"))
+        except Exception:
+            dur = None
+        if dur is not None and dur > 0:
+            target = min(target, max(0.0, dur - 0.25))
+        if target <= 0:
+            return False
+        try:
+            self.engine.cmd(["seek", round(target, 3), "absolute"])
+            # the engine is now WHERE the persisted record pointed: keep
+            # the record honest (the next observation pass will refresh
+            # it with the engine's own clock).
+            store.set_position(target, force=False)
+        except Exception as exc:
+            self.spy.event_sync("store_apply_warn",
+                                reason="pos-seek", error=str(exc))
+        return True
+
+    def resume(self) -> str:
+        """A5 — lift a pause, or start a PARKED list.
+
+        Three engine pictures, one user action:
+          * file loaded, engine BUSY (whether presented paused via the
+            start-in-pause idiom or freely playing) -> `pause false`
+            (the ordinary resume);
+          * engine IDLE with a NON-EMPTY list (the "stopped" parked
+            restore, or an engine that stopped on its own after a
+            natural EOF) -> start the list at the persisted index.
+            This is THE TRAP a naive implementation misses: an idle
+            engine obeys neither `pause false` nor `playlist-play`
+            unless asked, so a plain "set pause to false" would leave
+            a parked queue SILENT forever;
+          * engine idle with an EMPTY list -> graceful no-op (there is
+            nothing to resume; a ghost must not raise into the
+            request path).
+        The store's phase is aligned with whatever REALLY happens:
+        "unpaused"/"started" -> playing (forced — the user's intent is
+        a discrete transaction), "noop" leaves the record untouched.
+        The phase is a FACT, and a fact is only ever written when the
+        world actually changes.
+        """
+        props = self.engine.get_properties(["idle", "playlist-count"])
+        idle = _is_idle(props)
+        if idle is False:
+            # busy: a single property write, nothing more.
+            self.engine.cmd(["set_property", "pause", False])
+            self.store.set_phase(PHASE_PLAYING, force=True)
+            return "unpaused"
+        if idle is not True:
+            return "noop"  # unknown engine state: never guess
+        try:
+            cnt = int(props.get("playlist-count") or 0)
+        except (TypeError, ValueError):
+            cnt = 0
+        if cnt <= 0:
+            return "noop"  # parked but EMPTY: nothing to start
+        idx = self.store.index
+        items = self.store.items
+        if idx is None or not (0 <= idx < len(items)):
+            idx = 0
+        self.engine.cmd(["playlist-play", idx])
+        self.store.mark_selected(idx, persist=True)
+        self.store.set_phase(PHASE_PLAYING, force=True)
+        return "started"
 
     # ============================================================= transport
     def play(self, url: str) -> None:
@@ -212,8 +399,14 @@ class PlaybackController:
         playlist. The caller (Api) updates the store intent (A3 rules)."""
         self.engine.cmd(["loadfile", str(url), "replace"])
 
-    def pause(self, value: bool) -> None:
-        self.engine.cmd(["set_property", "pause", bool(value)])
+    def pause(self, flag: bool) -> None:
+        """The pause button: ONE stock command (`set_property pause
+        <flag>`) — the A4 transport contract: one command per action,
+        never an engine probe inside a button (the C1 suite asserts
+        the exact command list). WHETHER that tap merits persisting a
+        phase is a POLICY decision of the Api layer (A5 "records are
+        facts"): the handler decides from the engine's state itself."""
+        self.engine.cmd(["set_property", "pause", bool(flag)])
 
     def stop(self) -> None:
         self.engine.cmd(["stop"])

@@ -148,79 +148,212 @@ class MpvEngine:
         return obj
 
     def _cmd_impl(self, *args, timeout: float = 5.0) -> dict:
+        # CONCURRENT-SAFE BY DESIGN (A5 — corridas serializadas, nula
+        # perda): the ENTIRE request/response exchange (counter, send,
+        # reply wait) happens under a single per-engine lock. Before
+        # this, only the counter was guarded; two concurrent callers
+        # (e.g. the 5 s state tracker and a /status handler) shared the
+        # same datagram socket, one side's recv() could eat the other's
+        # reply, the victim burned its 5 s window plus the 10 s retry
+        # inside cmd(), and the HTTP handler stalled — a lost-update
+        # class fault on the control plane. Serializing exchanges costs
+        # nothing at control-plane volume (a few dozen packets/min) and
+        # makes the engine safe for any number of concurrent drivers.
+        # (PT-BR: a troca inteira — contador, envio e espera da
+        # resposta — ocorre sob o lock do engine; dois chamadores
+        # concorrentes nunca mais disputam o socket de reply.)
+        # Complemento A6: uma resposta que chegue destinada a OUTRO rid
+        # em voo é estacionada no mailbox compartilhado para o
+        # detentor (nunca descartada) — defesa adicional sobre a
+        # serialização, útil ex.: reply tardia após retry de
+        # EngineDown. Ver `_take_mailbox`/`_park_foreign`.
         with self._lock:
             self._req_counter += 1
             rid = self._req_counter
-        if len(args) == 1 and isinstance(args[0], (list, tuple)):
-            command = list(args[0])  # tolerate cmd([...]) as well as cmd(*)
-        else:
-            command = list(args)
-        msg = {"command": command, "request_id": rid}
-        if self.reply_path:
-            msg["nvr-reply-to"] = self.reply_path
-        payload = json.dumps(msg, separators=(",", ":")) + "\n"
-        sock = self._ensure()
-        # A reply for THIS id may already be parked (a previous recv
-        # swept it in before we started waiting) — honor it before
-        # spending another round trip.
-        hit = self._take_mailbox(rid)
-        if hit is not None:
-            return self._accept(hit)
-        try:
-            sock.send(payload.encode())
-        except (FileNotFoundError, ConnectionRefusedError,
-                BrokenPipeError, OSError) as exc:
-            self.close()
-            raise EngineDown(str(exc)) from exc
-        deadline = time.monotonic() + timeout
-        while True:
+            if len(args) == 1 and isinstance(args[0], (list, tuple)):
+                command = list(args[0])  # tolerate cmd([...]) as well as cmd(*)
+            else:
+                command = list(args)
+            msg = {"command": command, "request_id": rid}
+            if self.reply_path:
+                msg["nvr-reply-to"] = self.reply_path
+            payload = json.dumps(msg, separators=(",", ":")) + "\n"
+            sock = self._ensure()
+            # A reply for THIS id may already be parked (an earlier
+            # exchange swept it in before we started waiting) — honor
+            # it before spending another round trip.
             hit = self._take_mailbox(rid)
             if hit is not None:
                 return self._accept(hit)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise RuntimeError(
-                    "tempo esgotado aguardando resposta do engine (req %d)"
-                    % rid)
             try:
-                sock.settimeout(min(max(0.05, remaining), 0.5))
-                raw = sock.recv(65536)
-            except socket.timeout:
-                continue
-            except (OSError,) as exc:
+                sock.send(payload.encode())
+            except (FileNotFoundError, ConnectionRefusedError,
+                    BrokenPipeError, OSError) as exc:
                 self.close()
                 raise EngineDown(str(exc)) from exc
-            if not raw:
-                continue
-            for line in raw.decode(errors="replace").split("\n"):
-                line = line.strip()
-                if not line:
+            deadline = time.monotonic() + timeout
+            while True:
+                hit = self._take_mailbox(rid)
+                if hit is not None:
+                    return self._accept(hit)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError(
+                        f"tempo esgotado aguardando resposta do engine (req {rid})")
+                try:
+                    sock.settimeout(max(0.05, min(remaining, 0.5)))
+                    raw = sock.recv(65536)
+                except socket.timeout:
+                    continue
+                except (OSError,) as exc:
+                    self.close()
+                    raise EngineDown(str(exc)) from exc
+                if not raw:
+                    continue
+                for piece in raw.decode(errors="replace").split("\n"):
+                    piece = piece.strip()
+                    if not piece:
+                        continue
+                    try:
+                        obj = json.loads(piece)
+                    except json.JSONDecodeError:
+                        continue
+                    if obj.get("request_id") == rid:
+                        return self._accept(obj)
+                    self._park_foreign(obj)
+
+    def _cmd_multi(self, commands: "list[list]",
+                   timeout: float = 5.0) -> "list[dict]":
+        """One lock hold, N commands, N replies (atomic batch).
+
+        A6.2 — CONSISTENT SAMPLES: `get_properties` must not tear a
+        read across a state change. Before this, the batch was N
+        independent `cmd()` exchanges (the lock released between each),
+        so a concurrent transaction — the 5 s state tracker (A5) or a
+        pause/resume write — could land INSIDE the batch: the first
+        half of the sample described the pre-write world, the second
+        half the post-write one. A /status delivering such a hybrid
+        drove the bridge's reverse-sync projection AGAINST a just-made
+        user gesture (the T3/T4 pause-resume oscillation: the page
+        then answered with a phantom /resume of its own). Holding the
+        per-engine lock across the whole fan-out orders any
+        concurrent exchange either fully before or fully after the
+        batch, so a sample is always a coherent view of one engine
+        state. Cost: a few extra ms of lock hold at control-plane
+        volume — negligible. Foreign replies still park in the shared
+        mailbox (A6); events keep flowing to the observer.
+        (PT-BR: o lote inteiro — envios e drenagem das respostas —
+        acontece sob o lock do engine; uma escrita concorrente nunca
+        mais fica entremeada no meio da amostra.)
+        """
+        with self._lock:
+            planned: "list[int]" = []
+            payloads: "list[tuple[int, str]]" = []
+            for c in commands:
+                self._req_counter += 1
+                rid = self._req_counter
+                planned.append(rid)
+                msg = {"command": list(c), "request_id": rid}
+                if self.reply_path:
+                    msg["nvr-reply-to"] = self.reply_path
+                payloads.append(
+                    (rid, json.dumps(msg, separators=(",", ":")) + "\n"))
+            sock = self._ensure()
+            pending: "dict[int, dict | None]" = {}
+            for rid, pline in payloads:
+                # A reply for this id may already be parked (an earlier
+                # exchange swept it in) — honor it without re-sending.
+                hit = self._take_mailbox(rid)
+                if hit is not None:
+                    pending[rid] = hit
                     continue
                 try:
-                    obj = json.loads(line)
-                except json.JSONDecodeError:
+                    sock.send(pline.encode())
+                except (FileNotFoundError, ConnectionRefusedError,
+                        BrokenPipeError, OSError) as exc:
+                    self.close()
+                    raise EngineDown(str(exc)) from exc
+                pending[rid] = None
+            deadline = time.monotonic() + timeout
+            while any(v is None for v in pending.values()):
+                for rid in planned:
+                    if pending[rid] is None:
+                        hit = self._take_mailbox(rid)
+                        if hit is not None:
+                            pending[rid] = hit
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError(
+                        "tempo esgotado aguardando respostas do engine "
+                        f"(lote de {len(planned)})")
+                try:
+                    sock.settimeout(max(0.05, min(remaining, 0.5)))
+                    raw = sock.recv(65536)
+                except socket.timeout:
                     continue
-                if obj.get("request_id") == rid:
-                    return self._accept(obj)
-                self._park_foreign(obj)
+                except (OSError,) as exc:
+                    self.close()
+                    raise EngineDown(str(exc)) from exc
+                if not raw:
+                    continue
+                for piece in raw.decode(errors="replace").split("\n"):
+                    piece = piece.strip()
+                    if not piece:
+                        continue
+                    try:
+                        obj = json.loads(piece)
+                    except json.JSONDecodeError:
+                        continue
+                    oid = obj.get("request_id")
+                    if (isinstance(oid, int) and oid in pending
+                            and pending[oid] is None):
+                        pending[oid] = obj
+                    else:
+                        self._park_foreign(obj)
+            reps: "list[dict]" = []
+            for rid in planned:
+                val = pending[rid]
+                if val is None:
+                    raise RuntimeError(
+                        f"resposta ausente para req {rid} (lote de {len(planned)})")
+                reps.append(val)
+            return [self._accept(v) for v in reps]
 
+    def batch_cmd(self, commands: "list[list]",
+                  timeout: float = 5.0) -> "list[dict]":
+        """Several commands as ONE atomic exchange (see `_cmd_multi`).
+
+        Same retry policy as `cmd()`: one conservative retry on
+        transport-class failures (lost datagram, timeout); deliberate
+        engine rejections ("engine recusou") are NEVER retried.
+        """
+        try:
+            return self._cmd_multi(commands, timeout=timeout)
+        except RuntimeError as exc:
+            if str(exc).startswith("engine recusou"):
+                raise
+        except EngineDown:
+            pass
+        return self._cmd_multi(commands, timeout=timeout)
+
+    # ------------------------------------------------------------ conveniences
     def get_property(self, name: str) -> "object":
         resp = self.cmd(["get_property", name])
         return resp.get("data")
 
     def get_properties(self, names: "list[str]") -> dict:
-        """Fetch several properties with one get_property call EACH.
+        """Fetch several properties as ONE atomic exchange (A6.2).
 
         Stock mpv's `get_property` takes exactly ONE name; there is no
-        multi-name form in the protocol, so the only faithful way to read
-        several is N calls (control-plane volume: a few dozen/min — cheap
-        on an AF_UNIX datagram socket).
+        multi-name form in the protocol, so the only faithful way to
+        read several is N calls — but now sent under a SINGLE lock hold
+        (`batch_cmd`/`_cmd_multi`) so a concurrent set_property can
+        never land in the middle of the batch: the returned dict is a
+        consistent view of one engine state, which is what /status and
+        the 5 s tracker rely on for a trustworthy sample.
         """
-        out = {}
-        for n in names:
-            resp = self.cmd(["get_property", n])
-            out[n] = resp.get("data")
-        return out
+        replies = self.batch_cmd([["get_property", n] for n in names])
+        return {n: r.get("data") for n, r in zip(names, replies)}
 
     def set_property(self, name: str, value) -> None:
         self.cmd(["set_property", name, value])

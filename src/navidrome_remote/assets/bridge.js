@@ -165,12 +165,16 @@
 
   /* ------------------------------------- silent feed (generated in RAM) */
   function buildSilenceWav() {
-    /* 8 kHz, 16-bit mono, 0.25 s of digital zero — valid WAV the media
+    /* 8 kHz, 16-bit mono, 10 s of digital zero — valid WAV the media
      * pipeline accepts; the user hears NOTHING with it, and the element
      * stays "playing" (looped) so no `ended` cascades into the UI's
-     * auto-advance logic. Generated (never shipped) to keep the asset
-     * lean. */
-    var sr = 8000, secs = 0.25, n = Math.floor(sr * secs);
+     * auto-advance logic. 10 s (not the original 0.25 s): each loop
+     * pass re-arms the element (seek churn) and opens a micro-window in
+     * which raw `paused` can read true — a user play/pause toggle that
+     * lands there mis-branches (T3 loss mode). Stretching the pad to
+     * 10 s makes that window 1-per-10s instead of ~4-per-second.
+     * Still generated (never shipped), still ~160 KB in RAM only. */
+    var sr = 8000, secs = 10, n = Math.floor(sr * secs);
     var buf = new ArrayBuffer(44 + n * 2);
     var dv = new DataView(buf);
     function wstr(off, s) {
@@ -342,7 +346,16 @@
      user play/pause events that land right after our own write. TTL it. */
   var guardSince = 0;
   var lastClickAt = 0; /* any user click while engaged (settle gate) */
-  var GUARD_EVENT_TTL = 750; /* ms — aligned with the per-el switching window */
+  /* ms — how long an event can ride on OUR OWN last guarded write.
+     A6.2: tuned WELL BELOW the 1 s status-poll cycle. The reverse-sync
+     projection touches (and re-stamps) the element on every poll, so a
+     TTL approaching the poll period classifies REAL user gestures
+     (landed within 750 ms of a poll write) as our own and eats them —
+     observed: a user /pause silently dropped (T3). Genuine reactions
+     to our writes (load artifacts, play/pause from el.play()) arrive
+     in tens of ms; anything slower belongs to whoever acted last
+     (the user). Load-swaps keep their own, wider `switching` window. */
+  var GUARD_EVENT_TTL = 150;
   var lastSwappedId = null;
   var lastIntents = {}; /* route -> {t,key} */
   var queueHi = 0; /* highest queue size ACKNOWLEDGED since a full clear */
@@ -358,6 +371,12 @@
   var guardSeq = 0;
   var seekDragLock = false;
   var playRetry = null; /* last /play intent awaiting an engine-up window */
+  var lastPlayBtnPress = null; /* A6.2 — last REAL press on a play-family button (ms) */
+  var PLAY_GHOST_GRACE_MS = 3000; /* A6.2 — ghost-resume grace after a user /pause */
+  var lastPauseDirAt = null; /* A6.2 — last USER /pause intent we shipped (ms) */
+  var lastResumeDirAt = null; /* A6.2 — last USER /resume|/play intent (ms) */
+  var DIR_STALE_MS = 2500; /* A6.2 — stale-poll horizon behind a user direction change */
+  var PRESS_AFTER_SWITCH_MS = 100; /* A6.2 — press this far after the swap is a SEPARATE gesture */
   var timers = { poll: null, tick: null, watch: null, reprobe: null, engage: null };
 
   /* -------------------------------------------------------- guard write */
@@ -373,6 +392,15 @@
   function isOurEvent(el) {
     var meta = elMeta.get(el);
     if (!meta || !meta.guardSeq || meta.guardSeq !== guardSeq) {
+      return false;
+    }
+    /* A6.2 F6b — causality beat. Our own load-artifact reactions arrive
+       WITHOUT any user gesture in between (tens of ms, nothing else
+       touched the page). If a user click on ANY control landed AFTER the
+       stamp that owns this event, the event belongs to the user — no
+       matter how tight the TTL window is (a real pause landing 150 ms
+       behind a poll re-stamp used to die here, T3 loss mode). */
+    if (lastClickAt > guardSince) {
       return false;
     }
     /* sticky only for the artifact window; after that, events belong to
@@ -466,6 +494,14 @@
     }
     if (!dedupeAllowed(route, payload)) {
       return Promise.resolve({ status: 0, ok: false, body: null, suppressed: "dup" });
+    }
+    /* A6.2 — direction memory: a USER direction change (shipped through
+       this funnel, whichever event fired it) is authoritative against
+       stale polls for DIR_STALE_MS (see the projection lock below). */
+    if (route === "/pause") {
+      lastPauseDirAt = Date.now();
+    } else if (route === "/resume" || route === "/play") {
+      lastResumeDirAt = Date.now();
     }
     bridge.stats.intents++;
     return apiCall(route, payload).then(function (res) {
@@ -725,6 +761,8 @@ function handlePlaySwap(meta, cls) {
      * artifacts, not user intent — hold a short mute window so they can
      * never translate into a spurious /pause racing our /play. */
     meta.switching = true;
+    meta.switchStart = Date.now(); /* A6.2 — separates "this swap's own"
+                                     press from a LATER user gesture */
     if (meta.switchT) {
       clearTimeout(meta.switchT);
     }
@@ -871,6 +909,13 @@ function handlePlaySwap(meta, cls) {
     }
     lastClickAt = Date.now();
     var ctl = findControl(evt.target);
+    if (ctl && AR_PLAYISH.test(sanitize(labelOf(ctl)))) {
+      /* A6.2 — remember a real finger/key press on the play family:
+         it legitimizes a resume that lands inside the ghost-resume
+         grace window (a quick re-tap is a deliberate restart, not a
+         load artifact). */
+      lastPlayBtnPress = Date.now();
+    }
     if (!ctl) {
       return;
     }
@@ -900,7 +945,16 @@ function handlePlaySwap(meta, cls) {
         sendRepeatFromUi(cls, pressed);
       });
     } else if (AR_STOP.test(lb)) {
-      sendIntent("/stop", {});
+      sendIntent("/stop", {}).then(function (r) {
+        if (r.ok) {
+          /* A6.3 F6d — a successful stop is PROOF the deck is empty:
+             clear the identity memory NOW (waiting for the poll proof
+             costs up to three cycles) so a later play of the same song
+             is a fresh /play, not a swallowed echo/reload. */
+          lastSwappedId = null;
+          if (shadow) { shadow.currentId = null; }
+        }
+      });
     }
     /* play/pause buttons: the INTENT arrives through the media element's
      * play/pause events (the native player calls el.play()/el.pause()) —
@@ -997,6 +1051,8 @@ function sendRepeatFromUi(cls, pressed) {
     if (!el || el.type !== "range") {
       return;
     }
+    lastClickAt = Date.now(); /* A6.2 F6b — slider release is a user gesture
+                                 (gesture causality beats the write TTL) */
     var max = parseFloat(el.max) || 0;
     var val = parseFloat(el.value) || 0;
     var lb = labelOf(el).toLowerCase();
@@ -1041,6 +1097,7 @@ function sendRepeatFromUi(cls, pressed) {
       }
       /* drag lock: our reverse sync must not fight a live gesture */
       seekDragLock = true;
+      lastClickAt = Date.now(); /* A6.2 F6b — a live drag is a user gesture */
     } else if (lb.indexOf("volume") >= 0 || lb.indexOf("vol") >= 0) {
       /* loudness control — remembered for the reverse-volume projection
          (the slider's VALUE must follow the engine, not just volume). */
@@ -1075,9 +1132,45 @@ function sendRepeatFromUi(cls, pressed) {
       return; /* our own guarded write */
     }
     if (meta.switching && (evt.type === "play" || evt.type === "pause")) {
-      return; /* load-algorithm artifact of a track swap — not user intent */
+      /* A6.2 — inside the swap window the default is still SWALLOW
+         (the load algorithm's own pause/play artifacts must not race
+         our /play). Exception: a play-family press registered AFTER
+         the swap began by a perceptible margin is a SEPARATE user
+         gesture (it landed during the window, not caused it) — a
+         real pause pressed into the 700 ms window is user intent and
+         may NOT be eaten (observed T3 loss mode: /pause never ships).
+         A press that PRECEDES the swap (the gesture that CAUSED
+         it) keeps the old swallow rule. */
+      if (lastPlayBtnPress != null && meta.switchStart != null &&
+          lastPlayBtnPress >= meta.switchStart + PRESS_AFTER_SWITCH_MS) {
+        /* distinct gesture: fall through and honor the event */
+      } else {
+        return; /* this swap's own artifact — not user intent */
+      }
     }
     if (evt.type === "play") {
+      /* A6.2 — GHOST-RESUME GUARD. A `play` event that lands right
+         AFTER the bridge honored a USER /pause is not user intent: it
+         is the element's own machinery replaying it (the silence feed
+         re-arming, a loadeddata auto-start, the reverse-sync
+         projection answering one sample late). Honoring it resurrects
+         the transport the user just stopped (forensics: /resume 83
+         ms after a /pause, T3 oscillation). ADR-004 bias: never
+         surprise the listener with audio. A deliberate re-tap is
+         exempt: a real press on the play-family button (captured
+         above) legitimizes a resume inside the grace window. The
+         mirror direction (`pause` events) is deliberately untouched —
+         eating a user pause is the worse fault. */
+      var gi = intentRing.length - 1;
+      while (gi >= 0 && intentRing[gi].route !== "/pause") {
+        gi--;
+      }
+      if (gi >= 0 &&
+          (Date.now() - intentRing[gi].t) <= PLAY_GHOST_GRACE_MS &&
+          (lastPlayBtnPress == null ||
+           Date.now() - lastPlayBtnPress > 1000)) {
+        return;
+      }
       if (bridge.engineDown || (shadow.playing === false && shadow.paused === false && !shadow.currentId)) {
         /* engine has nothing active: this IS the play intent */
         sendIntent("/resume", {}).then(function (r) {
@@ -1149,6 +1242,7 @@ function sendRepeatFromUi(cls, pressed) {
       memsetShadow();
       lastSwappedId = null;
       playRetry = null;
+      lastPlayBtnPress = null;
       if (swapGraceTimer != null) {
         clearTimeout(swapGraceTimer);
         swapGraceTimer = null;
@@ -1308,13 +1402,6 @@ function sendRepeatFromUi(cls, pressed) {
     if (st.volume != null) {
       shadow.volume = Number(st.volume);
     }
-    /* transport flags: kept in the shadow so gesture handlers can DERIVE
-       the next state from the ENGINE (deterministic — the DOM's
-       aria-pressed/class is still stale when our CAPTURE-phase listener
-       runs, because the SPA flips it in its own target-phase handler). */
-    shadow.shuffle = st.shuffle === true;
-    shadow.repeat = (st.repeat == null) ? "off" : String(st.repeat);
-    shadow.currentId = newId;
     /* Monotonic queue memory: a deck size can fall BELOW the acknowledged
        maximum only through a click-poisoned read (the SPA's own swap ships
        a /play that, per the A3 contract, flattens the engine playlist AND
@@ -1336,6 +1423,32 @@ function sendRepeatFromUi(cls, pressed) {
     if (idleStreak >= 2) {
       queueHi = 0;
     }
+    /* A6.3 F6d — identity retention. A SINGLE blank poll (the engine
+       blinks the current-track property to null across a loadfile
+       transition; the fake sink and real mpv both do this) used to forget
+       lastSwappedId, and the next poll (id back) re-fired the re-trigger
+       below: a full re-arm of the element mid-session (switching window,
+       load churn) that opened a mis-branch window on the play/pause
+       toggle — the T3 /resume-ghost loss mode. The identity now dies only
+       with PROOF of an empty deck (three consecutive idle polls); an
+       intentional /stop clears it immediately (see the stop path). */
+    if (idleStreak >= 3) {
+      lastSwappedId = null;
+    }
+
+    /* transport flags: kept in the shadow so gesture handlers can DERIVE
+       the next state from the ENGINE (deterministic — the DOM's
+       aria-pressed/class is still stale when our CAPTURE-phase listener
+       runs, because the SPA flips it in its own target-phase handler). */
+    shadow.shuffle = st.shuffle === true;
+    shadow.repeat = (st.repeat == null) ? "off" : String(st.repeat);
+    if (newId) {
+      shadow.currentId = newId;
+    } else if (idleStreak >= 3) {
+      /* F6d: retain the last KNOWN id across transient blanks — the
+         same-id echo guard needs it; a proven idle clears it. */
+      shadow.currentId = null;
+    }
 
     /* ---- project onto the native player ---------------------------- */
     var el = primaryElement();
@@ -1348,9 +1461,27 @@ function sendRepeatFromUi(cls, pressed) {
           guardBegin();
           try {
             if (st.playing && el.paused) {
-              el.play();
+              if (lastPauseDirAt != null &&
+                  (Date.now() - lastPauseDirAt) <= DIR_STALE_MS) {
+                /* A6.2 — STALE-POLL DIRECTION LOCK. This poll still shows
+                   the PRE-pause state; the element already obeys the
+                   user's /pause. Un-pausing it here would cancel the
+                   user's last direction (and the ensuing 'play' event
+                   is exactly the ghost-resume hazard ADR-004 defends
+                   against). The next poll — after the engine flip —
+                   converges on its own. */
+              } else {
+                el.play();
+              }
             } else if (st.paused && !el.paused) {
-              el.pause();
+              if (lastResumeDirAt != null &&
+                  (Date.now() - lastResumeDirAt) <= DIR_STALE_MS) {
+                /* Mirror: a stale poll behind a USER resume must not
+                   re-pause an element that is already playing ahead of
+                   the engine. */
+              } else {
+                el.pause();
+              }
             }
             if (st.volume != null) {
               el.volume = clamp(st.volume / 100, 0, 1);
@@ -1367,13 +1498,13 @@ function sendRepeatFromUi(cls, pressed) {
       }
     }
 
-    /* ---- current-track change coming FROM THE ENGINE ------------- */
+    /* ---- current-track change coming FROM THE ENGINE -------------
+       (F6d: lastSwappedId survives transient blank polls — cleared by the
+       idle proof above or by the /stop path — so the re-trigger fires
+       only on a genuine id change, never on a blink.) */
     if (newId && newId !== lastSwappedId && el) {
       retriggerTrackSwitch(el, newId);
       lastSwappedId = newId;
-    }
-    if (!newId) {
-      lastSwappedId = null;
     }
     updateHint(false);
   }

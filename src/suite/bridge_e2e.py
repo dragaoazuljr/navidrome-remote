@@ -459,6 +459,11 @@ async def wait_until(pred, *, timeout_s: float = 10.0, poll_s: float = 0.2) -> b
 
 
 async def rig_wait_status(rig: Rig, **want) -> bool:
+    # `timeout_s` is consumed by the waiter, NOT a status field: popping it
+    # keeps the **want spelling ergonomic (callers pass
+    # rig_wait_status(rig, **{"paused": True}, timeout_s=15)) and stops a
+    # bogus predicate (body["timeout_s"]) from failing a healthy run.
+    timeout_s = float(want.pop("timeout_s", 10.0))
     async def _p() -> bool:
         st, body = rig.op("GET", "/api/v1/status")
         if st != 200:
@@ -471,7 +476,7 @@ async def rig_wait_status(rig: Rig, **want) -> bool:
                 return False
         return True
 
-    return await wait_until(_p)
+    return await wait_until(_p, timeout_s=timeout_s)
 
 
 def intent_seen(route: str):
@@ -605,12 +610,23 @@ async def t2_engage_and_play(rig: Rig) -> Case:
     c.check("/play intent emitted with the song id",
             ok and play and play[-1].get("payload", {}).get("id") == "S1",
             str(play[-1] if play else None))
-    st, body = rig.op("GET", "/api/v1/status")
+    # F6e — bounded convergence wait: the service ACKs /play BEFORE its
+    # fire-and-forget IPC reaches the engine (under bed load the forward
+    # can take >1 s — measured: a loadfile landing 2.2 s after the ACK).
+    # A single immediate /status read then saw a half-booted engine and
+    # failed a HEALTHY run. The acceptance criterion is UNCHANGED — the
+    # engine must actually end up playing S1 — only the observation stops
+    # assuming an instantaneous transport.
+    st, body = await _wait_track(rig, "S1", timeout_s=20)
+    playb = body.get("play") or {}
+    # NOTE: the engine's media-title property is opaque metadata (the
+    # registered fake sink reports the literal "stream"; a real mpv the
+    # track's real name) — the ACCEPTANCE is the id, never the title
+    # wording. Title presence is kept as a shape check.
     c.check("engine actually playing S1 (via mock mpv)",
-            st == 200 and body.get("play") == {
-                "id": "S1", "title": "S1",
-                "pos": body["play"]["pos"], "dur": body["play"]["dur"]}
-            or (st == 200 and (body.get("play") or {}).get("id") == "S1"),
+            st == 200 and playb.get("id") == "S1"
+            and playb.get("title") is not None
+            and playb.get("pos") is not None and playb.get("dur") is not None,
             str(body)[:200])
     c.check("engine reports playing=true", body.get("playing") is True,
             str(body.get("playing")))
@@ -639,9 +655,13 @@ async def t3_pause(rig: Rig) -> Case:
     rig.tab.mark()
     await jv("__FIX__.pressPlay()")  # toggle: playing -> pause
     bs = await wait_bridge(rig, intent_seen("/pause"), timeout_s=6)
+    # F6e — same convergence semantics as T2 (see there): the /pause
+    # ACK does not imply the engine has APPLIED the pause yet.
+    conv = await rig_wait_status(rig, **{"paused": True, "playing": False},
+                                 timeout_s=15)
     st, body = rig.op("GET", "/api/v1/status")
     c.check("/pause emitted", bool(bs), str([i for i in (await bridge_state(rig)).get("intents") or [] if i.get("route") == "/pause"]))
-    c.check("engine paused", st == 200 and body.get("paused") is True
+    c.check("engine paused", conv and st == 200 and body.get("paused") is True
             and body.get("playing") is False, str(body)[:160])
     fx = await fix_state(rig)
     c.check("UI element paused in lockstep", fx.get("paused") is True,
@@ -657,9 +677,11 @@ async def t4_resume(rig: Rig) -> Case:
     rig.tab.mark()
     await jv("__FIX__.pressPlay()")  # paused -> play
     ok = await wait_bridge(rig, intent_seen("/resume"), timeout_s=6)
+    # F6e — same convergence semantics as T3 (see there).
+    conv = await rig_wait_status(rig, **{"playing": True}, timeout_s=15)
     st, body = rig.op("GET", "/api/v1/status")
     c.check("/resume emitted", ok, str([(i) for i in (await bridge_state(rig)).get("intents") or [] if i.get("route") == "/resume"]))
-    c.check("engine playing again", body.get("playing") is True,
+    c.check("engine playing again", conv and body.get("playing") is True,
             str(body)[:160])
     return c
 
@@ -852,10 +874,14 @@ async def t10_stop(rig: Rig) -> Case:
     rig.tab.mark()
     await jv("__FIX__.pressStop()")
     ok = await wait_bridge(rig, intent_seen("/stop"), timeout_s=6)
+    # F6e — same convergence semantics as T3 (see there): the stop must
+    # propagate through the engine before the idle proof reads cleanly.
+    conv = await rig_wait_status(rig, **{"idle": True, "play": None},
+                                  timeout_s=15)
     st, body = rig.op("GET", "/api/v1/status")
     c.check("/stop emitted", ok, str([i for i in (await bridge_state(rig)).get("intents") or [] if i.get("route") == "/stop"]))
     c.check("engine idle / no active track",
-            body.get("idle") is True and body.get("play") is None,
+            conv and body.get("idle") is True and body.get("play") is None,
             str(body)[:160])
     fx = await fix_state(rig)
     c.check("UI element stopped in lockstep", fx.get("paused") is True,
