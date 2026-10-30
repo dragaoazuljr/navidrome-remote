@@ -870,7 +870,24 @@ async def t9_repeat_cycle(rig: Rig) -> Case:
 
 
 async def t10_stop(rig: Rig) -> Case:
+    """Stop propagates to the UI player: engine converges (F6e) AND
+    the element's own projection lands WITHIN the poll horizon (A6.R
+    T10). The old single immediate read after the converged status
+    raced the 1s poll cycle and flaked 1/9: a pre-stop poll could
+    UNPAUSE the element after the fixture's own local pause, and with
+    no stop-projection branch in the bridge NOTHING re-set it — the
+    silence feed then kept "playing" forever."""
     c = Case("T10", "stop -> engine idle, UI stops too")
+    # PRELUDE (solo-run independent): the engine must hold an ACTIVE
+    # track. In the full matrix T9 leaves it running; in a
+    # --scenario T10 solo run the engine is fresh (idle) and a /stop
+    # would die as 503 engine-idle (discarded per ADR-004 — no ring
+    # entry). Making the contract explicit instead of accidental.
+    await _seed_queue(rig)
+
+    async def _eng_active() -> bool:
+        return rig.op("GET", "/api/v1/status")[1].get("playing") is True
+    await wait_until(_eng_active, timeout_s=15)
     rig.tab.mark()
     await jv("__FIX__.pressStop()")
     ok = await wait_bridge(rig, intent_seen("/stop"), timeout_s=6)
@@ -883,9 +900,13 @@ async def t10_stop(rig: Rig) -> Case:
     c.check("engine idle / no active track",
             conv and body.get("idle") is True and body.get("play") is None,
             str(body)[:160])
-    fx = await fix_state(rig)
-    c.check("UI element stopped in lockstep", fx.get("paused") is True,
-            str(fx.get("paused")))
+    # A6.R (T10) — wait for the ELEMENT to converge to its own stop
+    # within the poll horizon (<= ~2 cycles of 1s), instead of one
+    # instant read: this is exactly the 1/9 race inverted.
+    oks = await wait_fix(rig, lambda f: f.get("paused") is True,
+                          timeout_s=12)
+    c.check("UI element stopped in lockstep", oks,
+            str((await fix_state(rig)).get("paused")))
     return c
 
 
@@ -955,25 +976,91 @@ async def _fx_seek_near(target: float) -> bool:
 
 
 async def t12_gate_403_service_account(rig: Rig) -> Case:
-    c = Case("T12", "gate 403 (service account from browser plane): "
-                    "degrade + native restoration + explanatory badge")
-    await rig.tab.navigate(f"{rig.svc}/fixtures/sac.html", timeout=15)
+    """Deterministic in-scene T12 (A6.R): with an ORDINARY session the
+    bridge is first PROVEN to hold a synthetic re-trigger (engine-pushed
+    id riding on the element), THEN the page swaps to the service
+    account INSIDE the same scene — the very next poll presents the L2
+    403 and native restoration must leave ZERO synthetic traces.
+    The gate below pins the formerly interleaving-dependent ordering
+    (poll with a foreign id -> 403 in the same scene), which the old
+    boot-time sac.html flow could not observe at all: its first poll
+    already 403'd, before any re-trigger existed to corrupt the restore
+    target."""
+    c = Case("T12", "gate 403 (service account) AFTER a synthetic "
+                    "re-trigger: deterministic in-scene ordering + ADR-004 "
+                    "native restoration with zero synthetic traces")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
     rig.tab.mark()
-    ok = await wait_bridge(rig, lambda b: b.get("state") in ("engaged", "degraded"), timeout_s=15)
-    c.check("bridge reacted to the service-account session", ok,
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged with the ordinary session", ok,
             str((await bridge_state(rig)).get("state")))
-    await jv("__FIX__.pressPlay()")  # loads the track; the bridge intercepts
-    # the /play (and/or /resume) call must come BACK 403 -> degrade
-    ok = await wait_bridge(rig, lambda b: b.get("state") == "degraded", timeout_s=8)
+    if not ok:
+        return c
+    # PRELUDE (operator plane, deterministic): reseed the deck — the
+    # queue POST starts playback at index 0 (S1) regardless of whatever
+    # the previous scene left behind.
+    await _seed_queue(rig)
+
+    async def _eng_s1() -> bool:
+        b = rig.op("GET", "/api/v1/status")[1]
+        return b.get("playing") is True \
+            and ((b.get("play") or {}).get("id") == "S1")
+    ok1 = await wait_until(_eng_s1, timeout_s=20)
+    c.check("engine playing S1 (prelude)", ok1,
+            str(rig.op("GET", "/api/v1/status")[1])[:120])
+    # The user selects S1 ON THE PAGE: the element is ARMED with the
+    # REAL S1 stream URL (its future restore target); the /play it
+    # ships is the SAME id the engine already holds — echo, no write.
+    await jv("__FIX__.pressPlay()")
+    okarm = await wait_fix(rig, lambda f: f.get("muted") is True
+                           and str(f.get("cur", "")).startswith("data:"),
+                           timeout_s=10)
+    c.check("element armed on the real S1 url (silent feed)", okarm,
+            str(await fix_state(rig))[:160])
+    # EXTERNAL movement (OPERATOR): engine moves to S2. The next poll
+    # carries a FOREIGN id versus the element's last swap -> the
+    # engine-pushed re-trigger fires and publishes S2 on the element.
+    st, _b = rig.op("POST", "/api/v1/play", {"id": "S2"})
+    assert st == 200, "operator /play S2 rejected: " + str(_b)
+
+    async def _eng_s2() -> bool:
+        b = rig.op("GET", "/api/v1/status")[1]
+        return b.get("playing") is True \
+            and ((b.get("play") or {}).get("id") == "S2")
+    ok2 = await wait_until(_eng_s2, timeout_s=20)
+    c.check("engine moved to S2 (operator push)", ok2,
+            str(rig.op("GET", "/api/v1/status")[1])[:120])
+    # DETERMINISTIC GATE: the re-trigger must land BEFORE the 403 is
+    # provoked. From this moment the restore target IS corrupted under
+    # the pre-fix code (synthetic) — the scenario no longer depends on
+    # interleaving luck.
+    okrt = await wait_fix(rig, lambda f: f.get("syncId") == "S2",
+                          timeout_s=10)
+    c.check("synthetic re-trigger LANDED before the L2 403 "
+            "(ordering fixed, no more dice roll)", okrt,
+            "syncId=" + str((await fix_state(rig)).get("syncId")))
+    # IN-SCENE SESSION FLIP: the page now presents the SBC SERVICE
+    # ACCOUNT (the L2 target) — the very next poll presents it.
+    await jv("localStorage.setItem('token', '" + SBC_JWT + "')")
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "degraded",
+                           timeout_s=15)
     bs = await bridge_state(rig)
     c.check("state == degraded", ok, str(bs.get("reason")))
-    c.check("degradation reason names the gate code",
+    c.check("degradation reason names the L2 gate code "
+            "(service account)",
             (bs.get("reason") or "").startswith("gate:")
             and "service-account" in (bs.get("reason") or ""),
             str(bs.get("reason")))
+    c.check("explanatory badge visible",
+            (await fix_state(rig)).get("badge") is True,
+            str((await fix_state(rig)).get("badge")))
+    # NATIVE RESTORATION: the element must return to the REAL stream
+    # URL, un-muted, with the synthetic MARK purged everywhere.
+    oknat = await wait_fix(rig, lambda f:
+                           str(f.get("cur", "")).startswith("http://")
+                           and f.get("muted") is False, timeout_s=10)
     fx = await fix_state(rig)
-    c.check("explanatory badge visible", fx.get("badge") is True,
-            str(fx.get("badge")))
     cur = fx.get("cur", "")
     # currentSrc is ABSOLUTE in browsers (scheme+host prefixed) — the
     # check tolerates the real stream URL in either shape and only
@@ -983,8 +1070,13 @@ async def t12_gate_403_service_account(rig: Rig) -> Case:
                  and re.search(r"[?&]id=", cur) is not None)
     c.check("NATIVE restoration: element plays the real stream URL again "
             "(un-muted, local audio resumes)",
-            is_native and fx.get("muted") is False,
+            oknat and is_native,
             f"cur={cur[:90]} muted={fx.get('muted')}")
+    c.check("NO synthetic residue: data-nvr-sync-id PURGED on "
+            "restoration (ADR-004: restoration is complete; the mark "
+            "was ours)",
+            (fx.get("syncId") in (None, "")),
+            "syncId=" + str(fx.get("syncId")))
     reqs = rig.stream_requests()
     c.check("the restored stream WAS fetched from the (fake) upstream "
             "(native mode is genuinely playable)", len(reqs) >= 1,

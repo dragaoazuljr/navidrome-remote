@@ -242,8 +242,17 @@ class PlaybackController:
                                 reason="ipc", error=str(exc))
             return False
 
-        st = store.settings
-        phase = PHASE_PLAYING  # effective phase (legacy default)
+        # A6.R (A5 rework) — the snapshot taken ABOVE (the captured
+        # `phase` and `st = dict(store.settings)`) is the ONLY decision
+        # source for the rest of this method. Re-deriving both after
+        # the deploy burst was the A5 regression: the re-bound settings
+        # reference re-opened the mid-burst store rewrite race F7's
+        # capture exists to prevent, and the forced `phase = playing`
+        # threw away the persisted picture — a transport the listener
+        # left PAUSED came back PLAYING, and one left STOPPED STARTED
+        # the list (the rework battery: the paused picture lost, the
+        # parked list booted playing, and /resume answering "unpaused"
+        # where the trapped parked list demanded "started").
         try:
             if has_phase:
                 # A5: the settings mirror BEFORE the start so the first
