@@ -1,5 +1,5 @@
-/* navidrome-remote bridge — DEFINITIVE (A6)
- * Anchor: Navidrome UI v0.64.2  ·  version 0.3.0-a6
+/* navidrome-remote bridge — DEFINITIVE (A7)
+ * Anchor: Navidrome UI v0.64.2  ·  version 0.4.0-a7
  *
  * Injected by the proxy (inject.py) immediately before </head>: a plain
  * script, executed BEFORE the official SPA bundle, zero dependencies,
@@ -27,14 +27,28 @@
  *       -> /shuffle {value} | /repeat {mode};
  *     * stop -> /stop.
  *   REVERSE SYNC (SBC -> user)
- *     * light polling of GET /status (1 s visible / 5 s hidden — the
- *       ADR-002 transport decision: v0.64.2 has NO WS/SSE push channel);
- *     * playing/paused state, position, duration, volume and the CURRENT
- *       TRACK are projected back onto the native player's media element
- *       (shadow clock + guarded writes) and, on a current-track change
- *       coming from the engine alone (auto-advance), the native
+ *     * ADAPTIVE polling of GET /status (ADR-002: v0.64.2 has NO push
+ *       channel; ADR-005 adapts the period to the last observed
+ *       state, in precedence order): 5 s hidden · 1 s doubling to a
+ *       10 s cap on transport-failure streaks · 0.5 s fast ticks (x4)
+ *       after any state-vector change (how EXTERNAL commands reflect
+ *       quickly) · 3 s engine-down · 2 s playing stable · 3 s
+ *       paused/idle stable.
+ *     * the VISIBLE STATE (track, position, duration, volume,
+ *       play/pause) is projected onto the native player's media
+ *       element (shadow clock + guarded writes) and, on a
+ *       current-track change coming from the engine alone, the native
  *       track-switch pipeline is re-triggered with a synthetic id so
- *       the UI's "Now Playing" follows the engine.
+ *       "Now Playing" follows the engine. With the badge, this
+ *       ABSORBS the v1 spec's dedicated status panel — band/time/
+ *       position live in the official UI (component C: no fork, no
+ *       extra surface).
+ *     * SILENT FAILURES: transport-class poll failures (SBC offline,
+ *       5xx) never degrade anything nor touch an element — only the
+ *       backoff grows, and the discrete "SBC unreachable" hint shows
+ *       after 15 s of sustained failure; one success clears both.
+ *       Session verdicts (401/403) are NOT transport failures: the
+ *       gate adjudicates them (T12).
  *   GATES & DEGRADATION (NVR-2: graceful degradation + version gate)
  *     * PASSIVE: no Navidrome session in the page (pre-login) — the
  *       bridge does nothing and shows nothing (spec: acts only with an
@@ -54,6 +68,11 @@
  *     * ENGINE DOWN: the engine is down but the session is valid — the
  *       bridge STAYS engaged (commands are recorded by the service
  *       store) and shows a distinct "engine offline" hint.
+ *     * POLL FAILURE: a transport-class poll failure (SBC offline
+ *       mid-session) is SILENT — the bridge stays engaged and backs
+ *       the poll off (1 s doubling to 10 s); after 15 s sustained,
+ *       a discrete "SBC unreachable" hint shows; one success clears
+ *       both (ADR-005).
  *
  * AUTHORIZATION (A3 gateway contract): every /api/v1/* call carries the
  * PAGE'S OWN session — v0.64.2 parks its native JWT in localStorage
@@ -81,12 +100,22 @@
 
   /* ------------------------------------------------------------- consts */
   var ANCHOR = "v0.64.2";
-  var VERSION = "0.3.0-a6";
+  var VERSION = "0.4.0-a7";
   var API = "/api/v1/";
   var LS_TOKEN_KEYS = ["token", "navidrome_token"]; /* v0.64.2: "token" */
 
-  var POLL_VISIBLE_MS = 1000;
-  var POLL_HIDDEN_MS = 5000;
+  /* A7 (ADR-005) — adaptive poll cadence. Precedence in
+   * nextPollDelay(): hidden > transport backoff > transition fast
+   * ticks > engine down > playing > paused/idle. */
+  var POLL_HIDDEN_MS = 5000;        /* hidden tab (budget) */
+  var POLL_FAIL_STEP_MS = 1000;     /* backoff base (doubles) */
+  var POLL_BACKOFF_MAX_MS = 10000;  /* backoff cap */
+  var POLL_HINT_AFTER_MS = 15000;   /* sustained failure -> hint */
+  var POLL_FAST_MS = 500;           /* transition mode */
+  var TRANS_FAST_TICKS = 4;         /* fast ticks per change edge */
+  var POLL_DOWN_MS = 3000;          /* engine down, session valid */
+  var POLL_PLAY_MS = 2000;          /* playing stable */
+  var POLL_PAUSED_MS = 3000;        /* paused / idle stable */
   var REPROBE_DEGRADED_MS = 30000;
   var SESSION_WATCH_MS = 500;
   var SYNTH_TICK_MS = 1000;
@@ -379,8 +408,18 @@
   var PLAY_GHOST_GRACE_MS = 3000; /* A6.2 — ghost-resume grace after a user /pause */
   var lastPauseDirAt = null; /* A6.2 — last USER /pause intent we shipped (ms) */
   var lastResumeDirAt = null; /* A6.2 — last USER /resume|/play intent (ms) */
-  var DIR_STALE_MS = 2500; /* A6.2 — stale-poll horizon behind a user direction change */
+  var DIR_STALE_MS = 3000; /* A6.2 — stale-poll horizon behind a user direction
+                              change; A7: recalibrated 2500->3000 to cover the
+                              widest visible cadence (3 s) + margin (ADR-005). */
   var PRESS_AFTER_SWITCH_MS = 100; /* A6.2 — press this far after the swap is a SEPARATE gesture */
+  /* A7 (ADR-005) — adaptive-cadence bookkeeping: prevVec (comparator
+   * baseline), pollFailStreak/pollFailSince (failure backoff),
+   * fastTicks (owed 0.5 s ticks), pollTimes (tick-log seam). */
+  var prevVec = null;
+  var pollFailStreak = 0;
+  var pollFailSince = 0;
+  var fastTicks = 0;
+  var pollTimes = [];
   var timers = { poll: null, tick: null, watch: null, reprobe: null, engage: null };
 
   /* -------------------------------------------------------- guard write */
@@ -1233,6 +1272,12 @@ function sendRepeatFromUi(cls, pressed) {
       lastEngageAt = Date.now(); /* once per page: */
       bridge.stats.engagements++;
       beacon("bridge-engaged", "v=" + VERSION + " page=" + (versionSeen || "unknown"));
+      /* A7: a fresh engagement starts the adaptive machinery cold */
+      prevVec = null;
+      pollFailStreak = 0;
+      pollFailSince = 0;
+      fastTicks = 0;
+      pollTimes.length = 0;
       startPolling();
       startTicks();
       updateHint();
@@ -1267,6 +1312,11 @@ function sendRepeatFromUi(cls, pressed) {
       queueHi = 0; /* memory rebuilts by the first polls after re-engage */
       idleStreak = 0;
       idleTripleStreak = 0;
+      /* A7: a degraded bridge owes nothing to its adaptive machinery */
+      prevVec = null;
+      pollFailStreak = 0;
+      pollFailSince = 0;
+      fastTicks = 0;
       bridge.state = STATE_DEGRADED;
       bridge.degradedReason = reason;
       bridge.engineDown = false;
@@ -1365,12 +1415,11 @@ function sendRepeatFromUi(cls, pressed) {
     stopTimers();
   }
 
-  /* ---------------------------------------------------- polling (A6) */
+  /* ------------------------------------------ polling (A7, ADR-005) */
   function startPolling() {
+    /* A7: self-rescheduling loop — each tick picks its own delay. */
     stopTimer("poll");
     tickPoll();
-    var period = document.hidden ? POLL_HIDDEN_MS : POLL_VISIBLE_MS;
-    timers.poll = setInterval(tickPoll, period);
   }
   function restartPollLoop() {
     if (getState() === STATE_ENGAGED) {
@@ -1378,31 +1427,149 @@ function sendRepeatFromUi(cls, pressed) {
     }
   }
 
+  /* A7 (ADR-005) — the cadence decision (precedence order). */
+  function nextPollDelay() {
+    if (document.hidden) {
+      return POLL_HIDDEN_MS;
+    }
+    if (pollFailStreak > 0) {
+      var mult = Math.pow(2, Math.min(pollFailStreak, 4) - 1);
+      var d = POLL_FAIL_STEP_MS * mult;
+      return d > POLL_BACKOFF_MAX_MS ? POLL_BACKOFF_MAX_MS : d;
+    }
+    if (fastTicks > 0) {
+      return POLL_FAST_MS;
+    }
+    if (bridge.engineDown) {
+      return POLL_DOWN_MS;
+    }
+    if (shadow.playing) {
+      return POLL_PLAY_MS;
+    }
+    return POLL_PAUSED_MS;
+  }
+
+  function scheduleNextPoll() {
+    stopTimer("poll");
+    if (getState() !== STATE_ENGAGED) {
+      return;
+    }
+    timers.poll = setTimeout(tickPoll, nextPollDelay());
+  }
+
+  /* A7 — one transport-class failure: SILENT by contract (no element
+   * touched); the backoff grows and the "SBC unreachable" hint shows
+   * only after 15 s sustained. Session verdicts never reach this. */
+  function onPollFail() {
+    if (pollFailStreak === 0) {
+      pollFailSince = Date.now();
+    }
+    pollFailStreak++;
+    bridge.stats.pollsFailed = pollFailStreak;
+    if (Date.now() - pollFailSince >= POLL_HINT_AFTER_MS) {
+      updateHint(true);
+    }
+  }
+
+  function onPollSuccess() {
+    pollFailStreak = 0;
+    pollFailSince = 0;
+  }
+
+  /* A7 (ADR-005) — state-VECTOR edges between two applied status
+   * bodies (coarse: pos jump > 2.5 s i.e. beyond the nominal 2 s
+   * advance, dur change >= 2 s, volume >= 2 pts). */
+  function svChanged(prev, st) {
+    if (!prev || !st) {
+      return true;
+    }
+    var wasActive = (prev.playing === true) || (prev.paused === true);
+    var nowActive = (st.playing === true) || (st.paused === true);
+    if (wasActive !== nowActive) {
+      return true;
+    }
+    if ((prev.engine === "connected") !== (st.engine === "connected")) {
+      return true;
+    }
+    var pid = prev.play ? (prev.play.id || null) : null;
+    var nid = st.play ? (st.play.id || null) : null;
+    if (!!nid !== !!pid) {
+      return true;
+    }
+    if (nid && String(nid) !== String(pid)) {
+      return true;
+    }
+    if (st.play) {
+      if (st.play.pos != null && prev.play && prev.play.pos != null) {
+        /* STRICTLY above the nominal 2 s advance (+drift margin): a
+         * normal 2 s poll shows pos moving ~2.0 s and must NOT qualify
+         * as an edge — only a genuine seek does. */
+        if (Math.abs(Number(st.play.pos) - Number(prev.play.pos)) > 2.5) {
+          return true;
+        }
+      }
+      if (st.play.dur != null && prev.play && prev.play.dur != null) {
+        if (Math.abs(Number(st.play.dur) - Number(prev.play.dur)) >= 2.0) {
+          return true;
+        }
+      }
+    }
+    if (st.volume != null && prev.volume != null) {
+      if (Math.abs(Number(st.volume) - Number(prev.volume)) >= 2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function tickPoll() {
     if (getState() !== STATE_ENGAGED) {
       return;
     }
     bridge.stats.polls++;
+    pollTimes.push(Date.now());
+    if (pollTimes.length > 8) {
+      pollTimes.shift();
+    }
     doFetch("GET", API + "status", null, { tag: "status-poll", noGateHandle: true })
       .then(function (res) {
+        /* Session verdicts are GATE material, not transport failures:
+         * the 401/403 handler may degrade (that IS the native-player
+         * restoration path) — T12 relies on exactly this branch. No
+         * poll reschedule here: a degrade stops the loop itself, and
+         * a non-degrading 401 leaves the previous scheduling alone. */
         if (res.status === 401 || res.status === 403) {
           bridge.onApiAuthFailure(res.status, res.body, "/status");
           return;
         }
         if (res.status !== 200 || !res.body) {
-          bridge.stats.pollsFailed++;
-          if (bridge.stats.pollsFailed >= 10) {
-            bridge.stats.pollsFailed = 0;
-            updateHint(true); /* unreachable hint; stays engaged */
-          }
+          onPollFail();
+          scheduleNextPoll();
           return;
         }
-        bridge.stats.pollsFailed = 0;
+        /* A7: applyStatus reschedules the loop itself (the success
+         * path) — no double schedule here. */
+        onPollSuccess();
         applyStatus(res.body);
+      })
+      .catch(function () {
+        /* doFetch never rejects (it resolves a status-0 envelope);
+         * belt and braces — a failure must still schedule its retry. */
+        onPollFail();
+        scheduleNextPoll();
       });
   }
 
   function applyStatus(st) {
+    /* A7 (ADR-005) — manage the fast-tick debt before mutating the
+     * shadow (edges judged against pre-update values). */
+    var changed = svChanged(prevVec, st);
+    prevVec = st;
+    if (changed) {
+      fastTicks = TRANS_FAST_TICKS;
+    } else if (fastTicks > 0) {
+      fastTicks--;
+    }
     bridge.lastStatus = st;
     var eng = st.engine === "connected";
     var wasDown = bridge.engineDown;
@@ -1581,6 +1748,7 @@ function sendRepeatFromUi(cls, pressed) {
       lastSwappedId = newId;
     }
     updateHint(false);
+    scheduleNextPoll(); /* A7: the success path reschedules itself */
   }
 
   function primaryElement() {
@@ -1865,6 +2033,19 @@ function sendRepeatFromUi(cls, pressed) {
     },
     _api: function (route, payload) {
       return apiCall(route, payload, route === "/status");
+    },
+    /* A7 test seams — read-only introspection of the adaptive loop:
+     * the tick log (for asserting cadence gaps in E2E) and the current
+     * cadence decision (fail streak / fast-tick debt). */
+    _pollTimes: function () {
+      return pollTimes.slice();
+    },
+    _cadence: function () {
+      return {
+        delay: nextPollDelay(),
+        failStreak: pollFailStreak,
+        fastTicks: fastTicks
+      };
     }
   };
 
