@@ -57,7 +57,7 @@ class AssetLintTests(unittest.TestCase):
 
     def test_version_and_anchor_constants(self):
         self.assertIn('"v0.64.2"', self.src)
-        self.assertIn('"0.3.0-a6"', self.src)
+        self.assertIn('"0.4.0-a7"', self.src)
 
     # ------------------------------------------------------ idempotency
     def test_single_global_guard(self):
