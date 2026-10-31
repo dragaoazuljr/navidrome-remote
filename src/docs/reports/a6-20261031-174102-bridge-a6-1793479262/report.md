@@ -1,0 +1,12 @@
+# A6 — Evidence: browser-level matrix (bridge.js)
+
+- host: `dev-workspace`, chrome: `/usr/bin/google-chrome`
+- rig: service `http://127.0.0.1:57697`, upstream `127.0.0.1:41037`, sink `/tmp/bridge-a6-1793479262/mock-ipc.sock`
+- asset sha256: `715075de57418bb93c4482cfd0b0e5375a1375a4a9a963e128dbd862a825b004`
+
+| caso | veredito | detalhes |
+|---|---|---|
+| T16 | ❌ | logout mid-session -> SILENT powerdown (session-lost) -> 100% native; re-login re-engages (A8)<br>{✓} bridge engaged with the ordinary session — engaged<br>{✗} powerdown class == 'session-lost' (caught by the watcher, not the next 401) — None<br>{✗} state == passive — engaged<br>{✓} SILENT: no degradation reason — None<br>{✓} SILENT: no badge on the (former) login surface — False<br>{✗} PLAYER HANDED BACK: element restored to the real stream URL and un-muted (local audio resumes) — cur= muted=False<br>{✓} NO synthetic residue (data-nvr-sync-id purged) — None<br>{✓} the MUSIC DID NOT DIE: engine still holds S1 (the powerdown touches no engine state) — {'id': 'S1', 'title': 'Song One', 'pos': 12.173, 'dur': 180.0}<br>{✓} re-login re-engaged the bridge (soft re-join) — engaged<br>{✓} powerdown cleared after re-join — None<br>{✗} stats: >=1 powerdown, >=1 recovery recorded — {'engagements': 1, 'degradations': 0, 'recoveries': 0, 'powerdowns': 0, 'intents': 0, 'polls': 10, 'pollsFailed': 0, 'guardWrites': 0} |
+| T17 | ❌ | sustained SBC blackout (>20 s) -> powerdown (sbc-offline): audio handed back to the browser; service restored -> re-join (A8)<br>{✓} bridge engaged — engaged<br>{✓} powerdown class == 'sbc-offline' after the sustained blackout — sbc-offline<br>{✓} state == degraded (the SBC badge family stays up) — degraded<br>{✓} reason names sbc-offline — sbc-offline<br>{✓} explanatory badge visible (family informed, player spared) — True<br>{✗} AUDIO HANDED BACK: element restored to the REAL stream un-muted (the user keeps HEARING the music) — cur= muted=False<br>{✗} the restored stream WAS fetched natively from the upstream (genuinely playable) — 0 stream requests<br>{✗} re-probe re-joined on the restored service (soft re-join) — degraded<br>{✗} powerdown cleared after re-join — sbc-offline<br>{✓} the engine is intact (blackout touched no engine state) — {'phase': 'M1', 'engine': 'connected', 'idle': False, 'play': {'id': 'S1', 'title': 'Song One', 'pos': 76.146, 'dur': 18 |
+
+_Credenciais sintéticas derivadas em página; este documento passa pelo redator do espião antes da persistência._

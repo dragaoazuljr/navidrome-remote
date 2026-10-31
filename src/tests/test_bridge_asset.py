@@ -1,4 +1,4 @@
-"""Hermetic lint of assets/bridge.js (A6) — runs everywhere, no browser.
+"""Hermetic lint of assets/bridge.js (A6/A8) — runs everywhere, no browser.
 
 The asset is the only browser-side code we ship; these static checks pin
 the SAFETY surface of it (credential invariant, idempotency, route
@@ -38,8 +38,13 @@ class AssetLintTests(unittest.TestCase):
     def test_size_sanity(self):
         self.assertGreater(len(self.src), 4000,
                            "asset implausibly small for the A6 scope")
-        self.assertLess(len(self.src), 80000,
-                        "asset implausibly large (keep it lean)")
+        # Ceiling history: 70k (A5) -> 80k (A6/A7) -> 90k (A8). A8 added
+        # the powerdown subsystem (persistent session watch + the
+        # two-class powerdown + handover/anti-flap machinery); ADR-006
+        # documents the raise. Keep the margin deliberate.
+        self.assertLess(len(self.src), 90000,
+                        "asset implausibly large (keep it lean; "
+                        "ceiling in ADR-006)")
 
     def test_node_syntax_check(self):
         node = None
@@ -57,7 +62,7 @@ class AssetLintTests(unittest.TestCase):
 
     def test_version_and_anchor_constants(self):
         self.assertIn('"v0.64.2"', self.src)
-        self.assertIn('"0.4.0-a7"', self.src)
+        self.assertIn('"0.4.0-a8"', self.src)
 
     # ------------------------------------------------------ idempotency
     def test_single_global_guard(self):
@@ -112,6 +117,26 @@ class AssetLintTests(unittest.TestCase):
         for name in ("_state", "_reason", "_intents", "_status",
                      "_stats", "_shadow"):
             self.assertIn("'" + name + "'", self.src)
+
+    # ------------------------------------------------- A8 powerdown surface
+    def test_a8_powerdown_surface(self):
+        """A8: the graceful-degradation surface is STATICALLY pinned —
+        the two powerdown classes, the perpetual session watch (it must
+        survive degrade/engage: a logout while engaged is invisible to
+        every other loop), the handover threshold, and the plane marker
+        that feeds the service's conflict log."""
+        self.assertIn('"session-lost"', self.src)
+        self.assertIn('"sbc-offline"', self.src)
+        self.assertIn("_powerdown", self.src,
+                      "seam _powerdown falta (E2E distingue as classes)")
+        self.assertIn("LS_WATCH_MS", self.src,
+                      "watch de sessão perpétulo (A8) ausente")
+        self.assertIn("HANDOVER_MS", self.src,
+                      "limiar de devolução do áudio (A8) ausente")
+        self.assertIn("X-NVR-Plane", self.src,
+                      "marcador de plano (auditoria do last-write-wins) ausente")
+        self.assertIn("FLAP_DORMANT_MS", self.src,
+                      "anti-flap do powerdown (A8) ausente")
 
     # ------------------------------------------------- payload hygiene
     def test_json_payloads_are_flat(self):

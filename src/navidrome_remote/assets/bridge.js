@@ -1,5 +1,5 @@
-/* navidrome-remote bridge — DEFINITIVE (A7)
- * Anchor: Navidrome UI v0.64.2  ·  version 0.4.0-a7
+/* navidrome-remote bridge — DEFINITIVE (A8)
+ * Anchor: Navidrome UI v0.64.2  ·  version 0.4.0-a8
  *
  * Injected by the proxy (inject.py) immediately before </head>: a plain
  * script, executed BEFORE the official SPA bundle, zero dependencies,
@@ -49,7 +49,8 @@
  *       after 15 s of sustained failure; one success clears both.
  *       Session verdicts (401/403) are NOT transport failures: the
  *       gate adjudicates them (T12).
- *   GATES & DEGRADATION (NVR-2: graceful degradation + version gate)
+ *   GATES & GRACEFUL DEGRADATION (NVR-2/A8: powerdown of the control
+ *   block — the UI must stay 100% native when the SBC cannot serve)
  *     * PASSIVE: no Navidrome session in the page (pre-login) — the
  *       bridge does nothing and shows nothing (spec: acts only with an
  *       active session; the wire-level spy still covers that interval).
@@ -57,11 +58,28 @@
  *       differs from this build's anchor — no interception (the UI
  *       stays native, fully functional) + anchor-drift beacon (the
  *       A2 upgrade-gate correlates it).
- *     * GATE DENIED: the service gate rejects the session (401
- *       session-invalid / session-unverifiable, 403
- *       service-account-forbidden) — interception reverted, native
- *       playback restored (original stream URL, unmuted), a badge
- *       explains the state, a periodic re-probe re-engages when the
+ *     * POWERDOWN (A8): the SBC CONTROL BLOCK SWITCHES OFF. The native
+ *       player is handed back — real stream URLs restored, un-muted,
+ *       interception/polling/projection gone (100% native) — and the
+ *       operation can never throw. Two classes:
+ *       - "session-lost": the page LOSES its session (logout / storage
+ *         wipe — spotted by the PERPETUAL watcher, not the next 401)
+ *         or the gate answers 401 session-missing. Immediate and
+ *         SILENT: state PASSIVE, no badge, no re-probe (no session to
+ *         probe). The watcher re-engages the instant a session
+ *         reappears (soft re-join: a natively playing element is kept
+ *         native until its next load/selection — no mid-song snatch).
+ *       - "sbc-offline": the SBC's transport blackout sustains past
+ *         the 15 s "SBC unreachable" hint (ADR-005): after
+ *         HANDOVER_MS the AUDIO IS HANDED BACK TO THIS BROWSER (the
+ *         user keeps hearing the music natively); the 30 s re-probe
+ *         re-engages on the first 200 (the session is still valid).
+ *         Anti-flap: 3 powerdowns in 5 min put the bridge to sleep
+ *         for 5 min.
+ *     * GATE DENIED (T12 contract intact): 401 session-invalid /
+ *       session-unverifiable, 403 service-account-forbidden —
+ *       interception reverted, native playback restored, a badge
+ *       explains the state, the 30 s re-probe re-engages when the
  *       session becomes valid again.
  *     * FATAL: any unexpected internal error reverts to native mode
  *       (the bridge must never break the official UI) + beacon.
@@ -72,7 +90,13 @@
  *       mid-session) is SILENT — the bridge stays engaged and backs
  *       the poll off (1 s doubling to 10 s); after 15 s sustained,
  *       a discrete "SBC unreachable" hint shows; one success clears
- *       both (ADR-005).
+ *       both (ADR-005). Sustaining past HANDOVER_MS upgrades it to
+ *       the "sbc-offline" powerdown above.
+ *   CONFLICT POLICY (A8): a UI-plane write (marked X-NVR-Plane: ui)
+ *   racing an EXTERNAL command on the same resource inside the
+ *   service's window is LAST-WRITE-WINS by arrival order — the
+ *   service logs every race to the spy (plane_conflict) and counts
+ *   them on /status. Audit-grade only: the marker grants nothing.
  *
  * AUTHORIZATION (A3 gateway contract): every /api/v1/* call carries the
  * PAGE'S OWN session — v0.64.2 parks its native JWT in localStorage
@@ -100,7 +124,7 @@
 
   /* ------------------------------------------------------------- consts */
   var ANCHOR = "v0.64.2";
-  var VERSION = "0.4.0-a7";
+  var VERSION = "0.4.0-a8";
   var API = "/api/v1/";
   var LS_TOKEN_KEYS = ["token", "navidrome_token"]; /* v0.64.2: "token" */
 
@@ -117,8 +141,16 @@
   var POLL_PLAY_MS = 2000;          /* playing stable */
   var POLL_PAUSED_MS = 3000;        /* paused / idle stable */
   var REPROBE_DEGRADED_MS = 30000;
-  var SESSION_WATCH_MS = 500;
   var SYNTH_TICK_MS = 1000;
+  /* A8 — graceful degradation. The PERPETUAL session watch cadence
+   * (boot-only decide() missed logouts mid-session); the blackout
+   * handover threshold (the A7 hint stays up until then); the
+   * anti-flap rule (3 powerdowns in the window -> dormant). */
+  var LS_WATCH_MS = 1000;
+  var HANDOVER_MS = 20000;
+  var FLAP_WINDOW_MS = 300000;
+  var FLAP_MAX = 3;
+  var FLAP_DORMANT_MS = 300000;
   var INTENT_DUP_MS = 300;
   var SEEK_JUMP_MIN = 1.0; /* seconds counted as a user seek */
 
@@ -327,6 +359,7 @@
     url: location.href,
     state: STATE_PASSIVE,
     degradedReason: null,
+    powerdownKind: null, /* A8: "session-lost" | "sbc-offline" | null */
     lastStatus: null,
     engineDown: false,
 
@@ -337,6 +370,7 @@
       engagements: 0,
       degradations: 0,
       recoveries: 0,
+      powerdowns: 0, /* A8 */
       intents: 0,
       polls: 0,
       pollsFailed: 0,
@@ -348,6 +382,13 @@
       var code = bodyObj && bodyObj.error ? bodyObj.error : null;
       if (status === 401 && code === "session-denied-recent") {
         return; /* rate protection (10 s dedupe): not a session verdict */
+      }
+      if (status === 401 && code === "session-missing") {
+        /* A8: NO session at all (the page logged out mid-run) ->
+         * SILENT powerdown, not a gate badge: the login surface must
+         * stay 100% native; the perpetual watch re-joins later. */
+        powerdown("session-lost");
+        return;
       }
       if (status === 401 || status === 403) {
         var why = code ? "gate:" + code : "gate:http-" + status;
@@ -499,6 +540,11 @@
     if (jwt) {
       headers["Authorization"] = "Bearer " + jwt;
     }
+    /* A8: plane marker — the service separates UI-plane writes from
+     * EXTERNAL callers for the last-write-wins conflict log. Audit
+     * grade ONLY: the header grants no rights (authorization is the
+     * L0..L3 gate's business). */
+    headers["X-NVR-Plane"] = "ui";
     var init = { method: method, credentials: "same-origin", headers: headers };
     if (method !== "GET") {
       init.body = JSON.stringify(payload || {});
@@ -1281,12 +1327,144 @@ function sendRepeatFromUi(cls, pressed) {
       startPolling();
       startTicks();
       updateHint();
+      bridge.powerdownKind = null;
+      restartWatch(); /* A8: the perpetual watch lives ON engaged */
     } catch (err) {
       degrade("fatal: " + (err && err.name || "Error"), "engage");
     }
   }
 
+
+  /* ---------------------------------------------------- A8 powerdown */
+  /* The A8 POWERDOWN: the control block switches OFF and the native
+   * player is handed back (100% native). Shares degrade()'s teardown
+   * anatomy (restore BEFORE unpatch — the originals are needed) but
+   * diverges in the OUTCOME:
+   *   kind "session-lost" -> SILENT PASSIVE (no badge, no re-probe:
+   *     there is no session to probe; the perpetual watcher re-joins
+   *     when one reappears).
+   *   kind "sbc-offline"  -> DEGRADED (the A7 "SBC unreachable" badge
+   *     family stays up) + the 30 s re-probe re-joins on the first 200
+   *     (the page's session is still valid there).
+   * Neither class may throw: a powerdown that threw would be the very
+   * thing this milestone exists to prevent (broken player). */
+  var pdStamps = [];
+  var dormUntil = 0;
+  function powerdown(kind) {
+    if (bridge.powerdownKind === kind &&
+        (bridge.state === STATE_PASSIVE ||
+         bridge.degradedReason === kind)) {
+      return; /* already down for this reason */
+    }
+    try {
+      stopTimers();
+      offAll();
+      restoreAllElements();
+      unpatchPrototypes();
+      memsetShadow();
+      lastSwappedId = null;
+      playRetry = null;
+      lastPlayBtnPress = null;
+      if (swapGraceTimer != null) {
+        clearTimeout(swapGraceTimer);
+        swapGraceTimer = null;
+      }
+      pendingSwap = null;
+      adjWindow = null;
+      queueHi = 0;
+      idleStreak = 0;
+      idleTripleStreak = 0;
+      prevVec = null;
+      pollFailStreak = 0;
+      pollFailSince = 0;
+      fastTicks = 0;
+      pollTimes.length = 0;
+      bridge.powerdownKind = kind;
+      bridge.stats.powerdowns = (bridge.stats.powerdowns || 0) + 1;
+      if (kind === "sbc-offline") {
+        bridge.state = STATE_DEGRADED;
+        bridge.degradedReason = "sbc-offline";
+        bridge.engineDown = false;
+        timers.reprobe = setInterval(probeRecovery, REPROBE_DEGRADED_MS);
+      } else {
+        /* session-lost: SILENT — the login surface must stay 100%
+         * native: no badge, no re-probe. */
+        bridge.state = STATE_PASSIVE;
+        bridge.degradedReason = null;
+        bridge.engineDown = false;
+      }
+      beacon("bridge-powered-down", kind);
+      /* anti-flap: three powerdowns inside the window -> sleep. */
+      pdStamps.push(Date.now());
+      if (pdStamps.length > FLAP_MAX) {
+        pdStamps.splice(0, pdStamps.length - FLAP_MAX);
+      }
+      if (pdStamps.every(function (t) {
+        return Date.now() - t < FLAP_WINDOW_MS;
+      })) {
+        dormUntil = Date.now() + FLAP_DORMANT_MS;
+      }
+    } catch (_e) { /* a powerdown must NEVER throw */ }
+    restartWatch();
+    updateHint();
+  }
+
+  /* The PERPETUAL session watch (A8) must survive powerdown/degrade/
+   * engage: it is the only observer of the session's LIFECYCLE
+   * (logout while engaged is invisible to every other loop — the
+   * 401 would arrive seconds late, and a session-missing page has no
+   * session for ANY re-probe to heal it). */
+  var lastSession = false;
+  function restartWatch() {
+    if (!timers.watch) {
+      timers.watch = setInterval(watchTick, LS_WATCH_MS);
+    }
+  }
+  /* Shared GAIN handling, used by (a) a live neg->pos transition seen
+   * by the watcher and (b) a BOOT that already has a session: that
+   * first decision must fire immediately (A6/A7 contract) — there is
+   * no later transition to wait for; the session is already here. */
+  function applyGain() {
+    if (bridge.state === STATE_ENGAGED) { return; }
+    if (Date.now() < dormUntil) { return; /* anti-flap standby */ }
+    var v = pageVersion();
+    if (v !== null && !anchorMatch(v)) {
+      /* version gate: refuse to touch a foreign-version UI */
+      bridge.state = STATE_DEGRADED;
+      bridge.degradedReason = "anchor-drift";
+      bridge.powerdownKind = null;
+      beacon("anchor-drift", "page=" + v + " anchor=" + ANCHOR);
+      updateHint();
+      return;
+    }
+    if (bridge.state === STATE_PASSIVE &&
+        bridge.powerdownKind === "session-lost") {
+      bridge.stats.recoveries = (bridge.stats.recoveries || 0) + 1;
+      beacon("bridge-recovered", "after session-lost");
+    }
+    engage(v); /* SOFT re-join: a natively playing element is kept
+                 * native until its next load/selection (no snatch) */
+  }
+  function watchTick() {
+    var hs;
+    try { hs = hasSession(); } catch (_e) { return; }
+    if (hs === lastSession) { return; }
+    var gained = hs && !lastSession;
+    lastSession = hs;
+    try {
+      if (gained) {
+        applyGain();
+      } else if (bridge.state !== STATE_PASSIVE) {
+        /* A8: the session DIED (logout / storage wipe) while engaged
+         * or degraded -> immediate silent powerdown: 100% native. */
+        powerdown("session-lost");
+      }
+    } catch (_e) { /* the watcher must never throw into the SPA */ }
+  }
   function degrade(reason, ctx) {
+    if (bridge.powerdownKind !== null) {
+      return; /* A8: a powered-down bridge takes no further degradation */
+    }
     if (bridge.state === STATE_DEGRADED && bridge.degradedReason === reason) {
       return;
     }
@@ -1329,6 +1507,7 @@ function sendRepeatFromUi(cls, pressed) {
       }
     } catch (_e) { /* degradation itself must never throw */ }
     updateHint();
+    restartWatch(); /* A8: session lifecycle stays watched while degraded */
   }
 
   function restoreAllElements() {
@@ -1385,8 +1564,9 @@ function sendRepeatFromUi(cls, pressed) {
   function probeRecovery() {
     doFetch("GET", API + "status", null, { tag: "status-poll", noGateHandle: true })
       .then(function (res) {
-        if (res.status === 200) {
-          /* session valid again */
+        if (res.status === 200 && hasSession() && Date.now() >= dormUntil) {
+          /* session valid again (A8: a recovered SBc needs a LIVE page
+           * session — session-missing never heals by re-probing) */
           bridge.stats.recoveries++;
           beacon("bridge-recovered", "after " + bridge.degradedReason);
           if (timers.reprobe) {
@@ -1394,25 +1574,39 @@ function sendRepeatFromUi(cls, pressed) {
             timers.reprobe = null;
           }
           bridge.degradedReason = null;
+          bridge.powerdownKind = null;
           engage(pageVersion());
+        } else {
+          /* visibility for QA: why the re-join did not fire */
+          beacon("reprobe-no-heal", "status=" + res.status +
+                 " hasSession=" + hasSession() +
+                 " dormant=" + (Date.now() < dormUntil));
         }
       })
-      .catch(function () { });
+            .catch(function (e) {
+        beacon("reprobe-failed", String(e && e.message || e));
+      });
   }
 
   /* --------------------------------------------------------- visibility */
   function onVisibility() {
+    /* A8: the PERPETUAL session watch must survive visibility flips —
+     * headless navigations fire pagehide; a dead watcher would miss
+     * logouts (the T16 acceptance) for the rest of the page life. */
+    restartWatch();
     if (getState() !== STATE_ENGAGED) {
       return;
     }
     restartPollLoop();
   }
-
   function onPageHide() {
     if (getState() === STATE_ENGAGED) {
       beacon("bridge-exit", "stats=" + JSON.stringify(bridge.stats));
     }
     stopTimers();
+    /* the watch is the one timer that must OUTLIVE the hide (one cheap
+     * storage read per second): re-seed it immediately. */
+    restartWatch();
   }
 
   /* ------------------------------------------ polling (A7, ADR-005) */
@@ -1468,6 +1662,14 @@ function sendRepeatFromUi(cls, pressed) {
     bridge.stats.pollsFailed = pollFailStreak;
     if (Date.now() - pollFailSince >= POLL_HINT_AFTER_MS) {
       updateHint(true);
+    }
+    if (pollFailSince !== 0 &&
+        Date.now() - pollFailSince >= HANDOVER_MS &&
+        bridge.state === STATE_ENGAGED) {
+      /* A8: the blackout sustained PAST the handover threshold ->
+       * powerdown("sbc-offline"): the audio is HANDED BACK TO THIS
+       * BROWSER (100% native); the re-probe re-joins on the first 200. */
+      powerdown("sbc-offline");
     }
   }
 
@@ -1880,6 +2082,9 @@ function sendRepeatFromUi(cls, pressed) {
     if (r.indexOf("gate:") === 0) {
       return "SBC remote off — session rejected (" + r.slice(5) + ") (native playback)";
     }
+    if (r === "sbc-offline") {
+      return "SBC offline — audio handed back to this browser (retrying)";
+    }
     if (r.indexOf("fatal:") === 0) {
       return "SBC bridge error (" + r.slice(6) + ") — native playback";
     }
@@ -1939,41 +2144,17 @@ function sendRepeatFromUi(cls, pressed) {
   }
 
   /* --------------------------------------------- session watcher (boot) */
+  /* A8: the session watcher is now PERPETUAL (watchTick): the boot-only
+   * decide() could not SEE a session dying mid-run (logout/storage wipe)
+   * — the only observer of the full lifecycle. Entry point seeds it:
+   * one storage read per second, no 10-min ceiling (it is cheap and the
+   * logout half of the lifecycle needs it forever). */
   function startSessionWatcher() {
-    var decided = false;
-    function decide() {
-      if (decided) {
-        return;
-      }
-      if (!hasSession()) {
-        return; /* still anonymous: keep watching (cheap) */
-      }
-      decided = true;
-      stopTimer("watch");
-      var v = pageVersion();
-      if (v !== null && !anchorMatch(v)) {
-        /* version gate: refuse to touch a foreign-version UI (A2 input) */
-        bridge.state = STATE_DEGRADED;
-        bridge.degradedReason = "anchor-drift";
-        beacon("anchor-drift", "page=" + v + " anchor=" + ANCHOR);
-        updateHint();
-        return;
-      }
-      engage(v);
+    try { lastSession = hasSession(); } catch (_e) { }
+    timers.watch = setInterval(watchTick, LS_WATCH_MS);
+    if (lastSession) {
+      applyGain(); /* session present AT BOOT: decide NOW (A6/A7) */
     }
-    /* decide early if already authenticated at boot */
-    try {
-      if (hasSession()) {
-        decide();
-        return;
-      }
-    } catch (_e) { }
-    timers.watch = setInterval(decide, SESSION_WATCH_MS);
-    /* hard ceiling: stop watching after 10 min (a login that never
-     * happens should not leave a timer behind forever) */
-    timers.engage = setTimeout(function () {
-      stopTimer("watch");
-    }, 10 * 60 * 1000);
   }
 
   /* ------------------------------------------------------------- utils */
@@ -2046,6 +2227,11 @@ function sendRepeatFromUi(cls, pressed) {
         failStreak: pollFailStreak,
         fastTicks: fastTicks
       };
+    },
+    /* A8: the powerdown class in force ("session-lost" | "sbc-offline"
+     * | null) — E2E asserts the two classes distinctly. */
+    _powerdown: function () {
+      return bridge.powerdownKind;
     }
   };
 

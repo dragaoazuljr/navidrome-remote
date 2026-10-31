@@ -25,7 +25,9 @@ transform — i.e. the E2E exercises the exact production pipeline:
           -> controller -> mpv JSON-IPC -> engine (mock)
           <- /status poll <- ...
 
-Scenarios (T1..T15) — see the module tail for the full acceptance map:
+Scenarios (T1..T18) — see the module tail for the full acceptance map
+(T16-T18 = A8: the graceful-degradation powerdowns and the last-write-wins
+conflict log);
 passive/pre-login inertia, play/pause/resume/seek/volume/next/prev/
 stop/shuffle/repeat translation into /api/v1/* with the PAGE'S session,
 engine->UI reverse sync (incl. engine-pushed current-track re-trigger),
@@ -413,7 +415,8 @@ reason:g('_reason'),
 intents:g('_intents'),
 status:g('_status'),
 stats:g('_stats'),
-shadow:g('_shadow')});
+shadow:g('_shadow'),
+powerdown:g('_powerdown')});
 })()
 """
 
@@ -1204,6 +1207,226 @@ async def t15_invariants_scan(rig: Rig) -> Case:
     return c
 
 
+async def t16_logout_mid_session(rig: Rig) -> Case:
+    """A8 (PD-1): a session that DIES while engaged (logout) must switch
+    the SBC control block OFF IMMEDIATELY (<= the perpetual-watch 1 s),
+    SILENTLY (no badge: the login surface stays 100% native), handing
+    the player back; a re-login re-engages (soft re-join)."""
+    c = Case("T16", "logout mid-session -> SILENT powerdown (session-"
+                    "lost) -> 100% native; re-login re-engages (A8)")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged with the ordinary session", ok,
+            str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    # lively state: engine holds a track (the music that must NOT die)
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+    # THE LOGOUT: the page loses its session (wipe + the flag off)
+    await jv("localStorage.removeItem('token');"
+             "localStorage.removeItem('navidrome_token');"
+             "localStorage.setItem('is-authenticated','0');")
+    ok = await wait_bridge(rig, lambda b: b.get("powerdown") == "session-lost",
+                           timeout_s=12)
+    bs = await bridge_state(rig)
+    c.check("powerdown class == 'session-lost' (caught by the watcher, "
+            "not the next 401)", ok, str(bs.get("powerdown")))
+    c.check("state == passive", (bs.get("state") or "") == "passive",
+            str(bs.get("state")))
+    c.check("SILENT: no degradation reason", not (bs.get("reason")),
+            str(bs.get("reason")))
+    fx = await fix_state(rig)
+    c.check("SILENT: no badge on the (former) login surface",
+            fx.get("badge") is False, str(fx.get("badge")))
+    cur = fx.get("cur", "")
+    is_native = ("data:" not in cur[:5] and "__nvr_synth" not in cur
+                 and "/rest/stream" in cur
+                 and re.search(r"[?&]id=", cur) is not None)
+    c.check("PLAYER HANDED BACK: element restored to the real stream URL "
+            "and un-muted (local audio resumes)",
+            is_native and fx.get("muted") is False,
+            f"cur={cur[:80]} muted={fx.get('muted')}")
+    c.check("NO synthetic residue (data-nvr-sync-id purged)",
+            fx.get("syncId") in (None, ""), str(fx.get("syncId")))
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("the MUSIC DID NOT DIE: engine still holds S1 "
+            "(the powerdown touches no engine state)",
+            st == 200 and (body.get("play") or {}).get("id") == "S1",
+            str(body.get("play")))
+    # RE-LOGIN: the session reappears -> soft re-join
+    await jv("localStorage.setItem('token', '" + ALICE_JWT + "')")
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    bs = await bridge_state(rig)
+    stats = bs.get("stats") or {}
+    c.check("re-login re-engaged the bridge (soft re-join)", ok,
+            str(bs.get("state")))
+    c.check("powerdown cleared after re-join",
+            bs.get("powerdown") in (None, ""), str(bs.get("powerdown")))
+    c.check("stats: >=1 powerdown, >=1 recovery recorded",
+            (stats.get("powerdowns") or 0) >= 1
+            and (stats.get("recoveries") or 0) >= 1
+            and (stats.get("engagements") or 0) >= 2,
+            str(stats))
+    return c
+
+
+async def t17_blackout_handback(rig: Rig) -> Case:
+    """A8 (PD-2): the SBC's transport BLACKOUT sustained past the handover
+    threshold (HANDOVER_MS = 20 s) hands the AUDIO BACK TO THIS BROWSER
+    (100% native, the user keeps hearing the music) with the SBC badge
+    family up; restoring the service re-joins through the re-probe."""
+    c = Case("T17", "sustained SBC blackout (>20 s) -> powerdown "
+                    "(sbc-offline): audio handed back to the browser; "
+                    "service restored -> re-join (A8)")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged", ok, str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+    # THE BLACKOUT: kill the service PROCESS (polls die as transport
+    # failures). The fake engine + upstream KEEP RUNNING: the blackout
+    # is the SBC's own service, not the family network.
+    try:
+        rig.svc_proc.kill()
+        rig.svc_proc.wait(timeout=5)
+    except Exception as exc:
+        c.check("service killed for the blackout", False, str(exc))
+        return c
+    c.note("service process %d killed for the blackout drill"
+           % (rig.svc_proc.pid or 0))
+    # sustain past the 20 s handover threshold (the 15 s hint shows
+    # first and stays up until the handback — the A7 contract)
+    ok = await wait_bridge(rig, lambda b: b.get("powerdown") == "sbc-offline",
+                           timeout_s=60, poll_s=1.0)
+    bs = await bridge_state(rig)
+    c.check("powerdown class == 'sbc-offline' after the sustained "
+            "blackout", ok, str(bs.get("powerdown")))
+    c.check("state == degraded (the SBC badge family stays up)",
+            (bs.get("state") or "") == "degraded", str(bs.get("state")))
+    c.check("reason names sbc-offline",
+            (bs.get("reason") or "") == "sbc-offline",
+            str(bs.get("reason")))
+    fx = await fix_state(rig)
+    c.check("explanatory badge visible (family informed, player spared)",
+            fx.get("badge") is True, str(fx.get("badge")))
+    cur = fx.get("cur", "")
+    is_native = ("data:" not in cur[:5] and "__nvr_synth" not in cur
+                 and "/rest/stream" in cur
+                 and re.search(r"[?&]id=", cur) is not None)
+    c.check("AUDIO HANDED BACK: element restored to the REAL stream "
+            "un-muted (the user keeps HEARING the music)",
+            is_native and fx.get("muted") is False,
+            f"cur={cur[:80]} muted={fx.get('muted')}")
+    reqs = rig.stream_requests()
+    c.check("the restored stream WAS fetched natively from the "
+            "upstream (genuinely playable)", len(reqs) >= 1,
+            f"{len(reqs)} stream requests")
+    # RECOVERY: bring the service BACK on the same port; the 30 s
+    # re-probe re-joins on the first 200 (the page session is valid).
+    rig.svc_proc = None
+    rig.start_service()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=75, poll_s=2.0)
+    bs = await bridge_state(rig)
+    c.check("re-probe re-joined on the restored service (soft re-join)",
+            ok, str(bs.get("state")))
+    c.check("powerdown cleared after re-join",
+            bs.get("powerdown") in (None, ""), str(bs.get("powerdown")))
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("the engine is intact (blackout touched no engine state)",
+            st == 200, str(body)[:120])
+    return c
+
+
+async def t18_plane_conflict_last_write_wins(rig: Rig) -> Case:
+    """A8 (acceptance 2): a UI-plane write (bridge, marked
+    X-NVR-Plane: ui) racing an EXTERNAL command (no marker) on the same
+    resource inside the window -> LAST-WRITE-WINS by arrival order,
+    LOGGED on the spy (plane_conflict) and COUNTED on /status."""
+    import urllib.request as _u
+    import urllib.error as _ue
+    c = Case("T18", "race UI x external on the same resource inside the "
+                    "window: last-write-wins, LOGGED (plane_conflict) and "
+                    "COUNTED on /status (A8)")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged", ok, str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+
+    def _plain_post(path: str, payload: dict, bearer: str) -> "tuple[int, dict]":
+        """EXTERNAL plane: a nav-session call WITHOUT the X-NVR-Plane
+        marker (what an app/CLI would do)."""
+        data = json.dumps(payload, separators=(",", ":")).encode()
+        req = _u.Request(rig.svc + path, data=data, method="POST")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", "Bearer " + bearer)
+        try:
+            with _u.urlopen(req, timeout=10) as r:
+                body = r.read().decode("utf-8", "replace")
+                return r.status, json.loads(body) if body else {}
+        except _ue.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            try:
+                return e.code, json.loads(body)
+            except ValueError:
+                return e.code, {"raw": body}
+
+    # 1) THE UI-PLANE WRITE: the bridge's own write path (doFetch marks
+    #    X-NVR-Plane: ui). Fired through the inspection seam _api —
+    #    the SAME production path the sliders use, minus the gesture
+    #    heuristics. (void: the seam returns a Promise — never evaluated
+    #    in-page, no serialization.)
+    await jv("void window.__NVRA_BRIDGE__._t._api('/volume', "
+             "{level: 30});")
+    await asyncio.sleep(1.0)
+    # 2) THE EXTERNAL WRITE: same resource, ~1 s later (well inside the
+    #    3 s conflict window), no marker. It is LAST -> it WINS
+    #    (arrival order).
+    st_ext, body_ext = _plain_post("/api/v1/volume", {"level": 80},
+                                   ALICE_JWT)
+    c.check("external write accepted (engine volume -> 80, last-write-"
+            "wins by arrival order)", st_ext == 200,
+            "%s %s" % (st_ext, body_ext))
+    ok = await wait_until(lambda: rig.op("GET", "/api/v1/status")[1]
+                          .get("volume") == 80, timeout_s=15)
+    c.check("engine holds the LAST write (80)", ok,
+            str(rig.op("GET", "/api/v1/status")[1].get("volume")))
+    # 3) THE LOG: exactly the racers, with winner/loser attribution.
+    evs = [e for e in rig.spy_events()
+           if e.get("event") == "plane_conflict"
+           and e.get("resource") == "volume"
+           and e.get("winner") == "ext"
+           and e.get("loser") == "ui"]
+    c.check("spy LOGGED the race (plane_conflict, winner=ext, "
+            "loser=ui, resource=volume)", len(evs) >= 1,
+            str(evs[-1] if evs else "none")[:200])
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("/status COUNTS the accumulated conflicts ("
+            "'conflicts' present and >= 1)",
+            st == 200 and isinstance(body.get("conflicts"), int)
+            and body["conflicts"] >= 1,
+            str(body.get("conflicts")))
+    # 4) The UI projection follows the WINNING value.
+    ok = await wait_fix(rig, lambda f: abs(float(f.get("volVal", 0)) - 80)
+                        < 1.0, timeout_s=8)
+    c.check("UI volume slider followed the WINNING value (80)", ok,
+            str((await fix_state(rig)).get("volVal")))
+    return c
+
+
 SCENARIOS = [
     ("T1", t1_passive_prelogin),
     ("T2", t2_engage_and_play),
@@ -1220,6 +1443,9 @@ SCENARIOS = [
     ("T13", t13_anchor_drift),
     ("T14", t14_recovery_reauth),
     ("T15", t15_invariants_scan),
+    ("T16", t16_logout_mid_session),
+    ("T17", t17_blackout_handback),
+    ("T18", t18_plane_conflict_last_write_wins),
 ]
 
 
