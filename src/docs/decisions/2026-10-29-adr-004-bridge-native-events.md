@@ -212,3 +212,76 @@ varredura de invariantes de credenciais sobre TODOS os artefatos,
 e a asserção central: ZERO requisições de stream do browser durante
 engaged). Lint estático do asset: `tests/test_bridge_asset.py`.
 Registro de evidências: `docs/reports/a6-<ts>-*/`.
+
+## Emendas (A6.R — rework, carta t_325daf65, 2026-10-30)
+
+Escopo: as camadas F1–F7b permanecem (sem revert). Duas correções
+SEMÂNTICAS sobre o alvo de restauração e sobre a projeção
+engine→UI, motivadas pelo veredito de rework do review A6.2
+(carta t_7c3af334):
+
+### Emenda R1 — alvo de restauração (T12)
+
+Decisão original: a degradação restaura `meta.origUrl`. Com a
+chegada do retrigger movido a motor (item 1), `origUrl` deixou de
+garantir ser "a última URL REAL": `armEl` o sobrescrevia com a URL
+sintética (`__nvr_synth=1`) e `retriggerTrackSwitch` o anulava —
+de modo que um 403 L2 APÓS um retrigger fazia a restauração devolver
+a URL sintética crua no elemento (regressão T12; mecânica
+byte-idêntica no blob 8b06033). O fluxo de boot em `sac.html` da
+matriz antiga não observava a violação (o primeiro poll já dava 403,
+antes de existir retrigger algum) — a célula estrutural nova fixa a
+ordem (poll com id estrangeiro → 403 NA MESMA CENA) e prova o
+retrigger aterrissado antes do 403.
+
+Novo contrato (implementado em `restoreAllElements`):
+
+- Alvo escolhido por PRIORIDADE ESTRITA:
+  1. `lastNativeUrl` — a última URL de stream REAL que o elemento
+     conheceu; gravada por `armEl` exclusivamente para URLs
+     classificadas como `stream` e intocada por todo caminho de
+     retrigger (imune por construção);
+  2. `origUrl` — aceita apenas se não-nula **e** sem
+     `__nvr_synth=1` (defesa em profundidade);
+  3. se nenhuma existir (elemento que nunca armou URL real), o
+     atributo `src` é **limpo** — o feed sintético jamais é
+     "restaurado" cravo e o elemento silenciado não fica em loop de
+     silêncio no modo nativo.
+- O atributo `data-nvr-sync-id` (marcador público do retrigger) é
+  removido INCONDICIONALMENTE na restauração: pertence à projeção
+  do bridge e não pode sobreviver no modo nativo.
+- `retriggerTrackSwitch` passa a não alterar os alvos de
+  restauração (mantém apenas `swappedAlready`, que suprime a própria
+  intenção).
+
+Consequência: a restauração nativa pós-403-L2-após-retrigger devolve
+a URL REAL do elemento (som restabelecido, localmente auditiva) sem marcas
+sintéticas no DOM — esse é o significado operacional da cláusula
+original "restauração completa do modo nativo" no caso em que o
+retrigger ocorreu. Teste de regressão estrutural: `T12` de
+`suite/bridge_e2e.py` (cenário determinístico descrito acima).
+
+### Emenda R2 — stop projetado no elemento (T10)
+
+A projeção engine→UI (item 3) não tinha braço para o quadro STOP:
+com o motor ocioso (a lista estacionada no motor, pelo contrato) e o
+elemento ainda armado com o feed de silêncio em loop (`el.loop` de
+`armEl`), um `/stop` deixava a UI com o player aceso "playing" e o
+relojinho congelado (flake 1/9 na C1; subcheck 1/13 no 8b06033: o
+poll PRE-stop despausava o elemento e nada o reestabelecia).
+
+Nova regra: enquanto ENGAGED, a contagem de polls consecutivos
+`engine == "connected" && idle && !playing && !paused` atinge 2 e o
+elemento ainda não está pausado, o bridge projeta `el.pause()` no
+elemento. O TAMANHO DA FILEIRA não participa (o `/stop` deixa a
+lista no motor — o deck de N nunca veta o stop) e o ENGINE-DOWN
+não dispara (falha ≠ stop: o elemento conserva sua imagem enquanto
+os comandos enfileiram). Espelho direcional: uma amostra antiga
+atrás de um RESUME de usuário recente (≤ 2500 ms) não repara o
+elemento. O pause é a projeção mínima e reversível: o `src` fica
+carregado e o próximo `play()` rearma o transporte pelo caminho
+normal de intenções (`/resume` inicia a lista parkada;
+`/play {id-do-corrente}` reproduz) — idêntico a um elemento nativo
+parado. Teste de regressão: `T10` de `suite/bridge_e2e.py` passa a
+AGUARDAR a convergência do elemento dentro do horizonte de poll (≤
+12 s) em vez de uma leitura única instantânea.

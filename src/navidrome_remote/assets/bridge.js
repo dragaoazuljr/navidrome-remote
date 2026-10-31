@@ -339,7 +339,7 @@
     lastTickReal: null
   };
 
-  var elMeta = new WeakMap(); /* el -> {origUrl,silent,mutedSaved,loopSaved,shadowPos,shadowDur,guardSeq} */
+  var elMeta = new WeakMap(); /* el -> {origUrl,lastNativeUrl,silent,mutedSaved,loopSaved,shadowPos,shadowDur,guardSeq} */
 
   /* The guard must be STICKY only for as long as load-algorithm artifacts
      can arrive; a global seq that survives indefinitely would eat genuine
@@ -363,6 +363,10 @@
   var SETTLE_MS = 3000;
   var gateLog = []; /* decision audit (test seam only) */
   var idleStreak = 0; /* consecutive proven-idle polls (reset gate) */
+  var idleTripleStreak = 0; /* A6.R (T10) — consecutive polls reporting
+                               the STOP picture (connected + idle + no
+                               activity); drives the element's stop
+                               projection */
   var adjWindow = null; /* {at} stamped when WE ship /next|/prev */
   var pendingSwap = null; /* {id} a swap /play deferred behind an adjacent intent */
   var swapGraceTimer = null;
@@ -746,7 +750,18 @@ function handlePlaySwap(meta, cls) {
 
   function armEl(el, cls, originalUrl) {
     var meta = elMeta.get(el) || {};
-    meta.origUrl = originalUrl; /* RAM-only (restoration on degradation) */
+    /* A6.R (T12 / ADR-004 restoration) — the RESTORE TARGET is the
+     * element's last REAL stream URL. The synthetic re-trigger URL
+     * (__nvr_synth=1, kind:"internal") is a pipeline token, never a
+     * source: letting it become the restore target handed the
+     * synthetic back VERBATIM into native mode on degradation (the
+     * merged T12 leak — the "restored" url still carried __nvr_synth=1,
+     * byte-identical). Real streams only; `lastNativeUrl` is the
+     * restore-proof copy that no later write can overwrite. */
+    if (cls.kind === "stream") {
+      meta.origUrl = originalUrl; /* RAM-only (restoration on degradation) */
+      meta.lastNativeUrl = originalUrl;
+    }
     meta.silent = true;
     if (meta.mutedSaved == null) {
       meta.mutedSaved = el.muted;
@@ -1251,6 +1266,7 @@ function sendRepeatFromUi(cls, pressed) {
       adjWindow = null;
       queueHi = 0; /* memory rebuilts by the first polls after re-engage */
       idleStreak = 0;
+      idleTripleStreak = 0;
       bridge.state = STATE_DEGRADED;
       bridge.degradedReason = reason;
       bridge.engineDown = false;
@@ -1274,12 +1290,36 @@ function sendRepeatFromUi(cls, pressed) {
       if (meta && meta.silent) {
         meta.silent = false;
         try {
-          if (meta.origUrl) {
+          /* A6.R (T12 / ADR-004) — the re-trigger's id may ride on this
+           * element as an ATTRIBUTE; it belongs to the bridge's
+           * projection, never to the page. Purge it UNCONDITIONALLY —
+           * both "real url restored" and "cleared, never armed" are
+           * legitimate states. */
+          els[i].removeAttribute("data-nvr-sync-id");
+          /* Restoration target, in strict preference order:
+           *   1. lastNativeUrl — the last REAL stream URL the element
+           *      knew, guaranteed immune to every re-trigger write;
+           *   2. origUrl — belt and braces, ACCEPTED only if it is a
+           *      non-synthetic url (defense against any path storing
+           *      one despite armEl's stream-only rule);
+           *   3. null — CLEAR the source: a synthetic __nvr_synth=1
+           *      feed must never be "restored" verbatim into native
+           *      mode (the merged T12 leak, byte-identical), and an
+           *      element that never knew a real url must not keep
+           *      looping the silence feed after degradation. */
+          var restoreUrl = (meta.lastNativeUrl != null) ? meta.lastNativeUrl
+                         : ((meta.origUrl != null
+                             && meta.origUrl.indexOf("__nvr_synth=1") < 0)
+                            ? meta.origUrl
+                            : null);
+          if (restoreUrl != null) {
             if (raw.src.set) {
-              raw.src.set.call(els[i], meta.origUrl);
+              raw.src.set.call(els[i], restoreUrl);
             } else {
-              els[i].setAttribute("src", meta.origUrl);
+              els[i].setAttribute("src", restoreUrl);
             }
+          } else {
+            els[i].removeAttribute("src");
           }
           if (meta.mutedSaved != null) {
             els[i].muted = meta.mutedSaved;
@@ -1420,6 +1460,18 @@ function sendRepeatFromUi(cls, pressed) {
     var idleNow = (qrawSz <= 1 && qrawLen <= 1 && !st.playing
                    && !st.paused && !newId);
     idleStreak = idleNow ? idleStreak + 1 : 0;
+    /* A6.R (T10) — the STOP picture, decoupled from the deck size:
+     * the ENGINE is UP (engine-down is an OUTAGE — the element must
+     * keep its image while commands queue; treating an outage as a
+     * stop would freeze a healthy UI) AND the transport is stopped
+     * (idle) AND nothing plays nor pauses. `queue.size` deliberately
+     * does NOT participate: /stop leaves the list in the engine
+     * (the parked-list contract), so a deck of N must never veto the
+     * stop. Two consecutive samples protect against the millisecond
+     * blank a loadfile transition produces around the current id. */
+    var idleTripleNow = (st.engine === "connected" && st.idle === true
+                         && !st.playing && !st.paused);
+    idleTripleStreak = idleTripleNow ? idleTripleStreak + 1 : 0;
     if (idleStreak >= 2) {
       queueHi = 0;
     }
@@ -1482,6 +1534,28 @@ function sendRepeatFromUi(cls, pressed) {
               } else {
                 el.pause();
               }
+            } else if (idleTripleStreak >= 2 && !el.paused) {
+              /* A6.R (T10) — project the STOP onto the element: with
+               * the silence feed the element would keep LOOPING
+               * forever (armEl arms el.loop) — without this branch a
+               * /stop leaves the UI player lit "playing" with its
+               * shadow frozen (the 1/9 C1 loss mode: a pre-stop poll
+               * un-pauses the element and nothing re-pauses it).
+               * Pausing is the minimal reversible projection: the src
+               * stays loaded, so the user's next play() re-arms the
+               * transport through the normal intent path (/resume
+               * starts the parked list, /play{last} replays), exactly
+               * as a stopped native element would. Direction mirror:
+               * a stale sample behind a fresh USER resume must not
+               * re-stop an element that is starting ahead of the
+               * engine. */
+              if (lastResumeDirAt != null &&
+                  (Date.now() - lastResumeDirAt) <= DIR_STALE_MS) {
+                /* the engine is coming back after a user resume —
+                   leave the element alone */
+              } else {
+                el.pause();
+              }
             }
             if (st.volume != null) {
               el.volume = clamp(st.volume / 100, 0, 1);
@@ -1535,7 +1609,11 @@ function sendRepeatFromUi(cls, pressed) {
       var meta = elMeta.get(el);
       if (meta) {
         meta.swappedAlready = true; /* suppress the swap's own intent */
-        meta.origUrl = null; /* nothing external to restore */
+        /* A6.R (T12) — do NOT clear the restore targets here: the
+         * element's last REAL url must survive this synthetic
+         * re-trigger (armEl ignores internal urls for origUrl /
+         * lastNativeUrl as well) so degradation restores the genuine
+         * source, never the __nvr_synth=1 token. */
       }
       /* Publish the engine-pushed id on the element: the player library's
        * "Now Playing" wiring (or any test double of it) reads this attr
