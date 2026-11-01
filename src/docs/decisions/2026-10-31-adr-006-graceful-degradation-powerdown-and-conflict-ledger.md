@@ -246,3 +246,74 @@ Executada nesta entrega (dev-ws):
    player nativo íntegro e o re-join após a condição sanar.
 4. Suite completa de unidade (`python -m unittest discover tests/`) —
    regressão do M1/A5/A6/A7 zerada.
+
+---
+
+## Adendo (ciclo de correção A8, 2026-10-31 — re-execução fria em vermelho)
+
+A re-execução fria dos cenários críticos do ciclo A8 (tentativa 2) expôs três
+defeitos. São correções das decisões deste ADR, não expansão de alcance:
+
+### AD-1 — A predição de dormência passou a ser COUNT-based (T17)
+
+§4.2 prescrita a dormência quando "três powerdowns caírem dentro da janela".
+A primeira implementação usou `Array.prototype.every` sobre a lista de
+timestamps, que retorna **verdade vacia para listas curtas**: um ÚNICO
+powerdown armava 5 minutos de dormência, que engolia o heal do re-probe (o
+bridge não reajuntava após um blackout de 20 s). A predição agora exige
+`length >= FLAP_MAX && every(dentro da janela)` — a intenção original se
+mantém exata: só a rajada COMPLETA adormece o watch.
+
+### AD-2 — O plano do ledger é atribuição POR PEDIDO (T18)
+
+§4.3 descreve o plano como a atribuição de uma escrita; a primeira
+implementação o cachava em ESTADO DA INSTÂNCIA (`Api._cur_plane`). O serviço
+atende pedidos concorrentes, então qualquer outro pedido — tipicamente o
+próprio poll de 1 s de status do bridge — completando entre o dispatch e o
+note da escrita reescrevia o plano em cache e o conflito era
+**silenciado** (cenário E2E T18). `handle()` agora calcula o plano por
+pedido e o encaminha ao `_conflict_note()`; nada de estado compartilhado
+participa da decisão, e o comportamento de §4.3 passa a valer sob
+concorrência. Regression: `tests/test_conflict_ledger.py::test_i_concurrent_poll_cannot_steal_attribution`.
+
+### AD-3 — Separation of storage realms na rig headless (fidélidade de teste, T16)
+
+Na rig E2E (Chrome headless), evals `Runtime.evaluate` executadas **fora**
+do documento principal operam sobre um realm de storage DISTINTO do mundo
+principal da página: o `removeItem` emitido pela rig é invisível à página,
+e a sessão estacionada nunca muda (medido com espiões in-page de
+`localStorage.setItem/removeItem`: os escritores não eram chamados; as chaves
+persistiam). O logout REAL de uma SPA é escrita de main-world feita pelo
+próprio app — os cenários T16 passaram portanto a operar pela seam
+`__FIX__.simulateLogout()/simulateLogin()` da fixture, réplica fiel do
+handler da SPA (mesmas chaves). Conclusão: o vermelho de T16 era ilusão de
+rig, não defeito de produto; o contrato do watcher (§4.1) se mantém e foi
+confirmado vivo (tick 1 Hz, transição negativa detectada).
+
+### AD-4 — Correção da obrigação de "handback" (session-lost vs sbc-offline)
+
+A asserção E2E original exigia que, num LOGOUT, o elemento fosse promovido
+a uma URL de stream real mesmo tendo sido apenas um espelho sintético. Era
+leitura excessiva: §1 promete que *o player nunca morre* — o logout NÃO
+TOCA os elementos do usuário (nenhuma promoção, nenhum feed sintético,
+nenhum inversão de mute). As obrigações passam a ser:
+
+- `session-lost` — o elemento fica EXATAMENTE como estava antes do logout
+  (100% nativo: com stream real, continua com ele; sem, segue ocioso).
+  O SBC segue falando (fonte da verdade enquanto houver sessão).
+- `sbc-offline` — elementos que POSSUÍRAM um stream real o recuperam
+  desmutados (o usuário continua ouvindo). Elementos que nunca o tiveram
+  (só conheceram o feed sintético) ficam 100% nativos e o bridge LOGGA
+  `bridge-handback:pending` (journal + `stats.handback_pending`): o áudio
+  que morreu com o SBC não é conjurado do nada. Fabricar
+  `t=<jwt>` dentro de uma URL de stream fica explicitamente FORA deste
+  marco (violaria o espírito da invariante M0' de credencial fora de
+  resposta); esse contrato requer validação do esquema de credenciais do
+  upstream (Navidrome) e pertence à série B (device).
+
+### Observação não bloqueante
+
+Latente (pré-A8), visto na rodagem fria: o handler de SIGTERM de
+`__main__.py` chama `store.save()`, método inexistente em `QueueStore` —
+a exceção é inofensiva (o processo termina de qualquer modo); sinalizada
+para manutenção.

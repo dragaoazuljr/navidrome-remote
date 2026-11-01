@@ -115,7 +115,10 @@ URL, no token, no salt, no credential of any kind crosses to a client:
 * on the spy as `plane_conflict` (winner, loser, routes, gap-ms,
 * seq), with a running count exposed on /status (`conflicts`). The
 * marker is AUDIT-GRADE ONLY: spoofable, grants no rights —
-* authorization stays the L0..L3 gate's business.
+* authorization stays the L0..L3 gate's business. The plane of a call
+* is its REQUEST-OWN attribute (computed per request in `handle()`,
+* never instance state) so concurrent requests cannot overwrite each
+* other's attribution mid-flight (A8.x, found by the T18 cold-run).
 """
 
 from __future__ import annotations
@@ -259,7 +262,12 @@ class Api:
         self._ledger = {}
         self._conflict_seq = 0
         self.plane_conflicts = 0
-        self._cur_plane = "ext"
+        # A8.x — the plane is computed PER REQUEST inside `handle()` and
+        # passed to `_conflict_note()`. It is deliberately NOT instance
+        # state: this service handles concurrent requests, and caching
+        # the plane here let an interleaved request (e.g. the bridge's
+        # own 1 s status poll) steal the attribution between a write's
+        # dispatch and its ledger note (found by the A8 cold-run, T18).
 
     # ------------------------------------------------------------ dispatcher
     async def handle(
@@ -322,8 +330,10 @@ class Api:
         # the marker grants nothing — authorization stays L0..L3). The
         # bridge marks UI-originated traffic; the static-token operator
         # plane is known by construction; the rest is external.
+        # A8.x: the value is REQUEST-LOCAL (never instance state) so a
+        # concurrent request cannot rewrite it mid-flight.
         hdr_plane = (headers.get_first("x-nvr-plane") or "").strip().lower()
-        self._cur_plane = (
+        plane = (
             "ui" if hdr_plane == "ui"
             else ("op" if static_exempt else "ext")
         )
@@ -332,8 +342,9 @@ class Api:
             resp = await self._dispatch(method, path, payload)
             if resp is not None and ((path, method) in _WRITE_ROUTES) \
                     and resp[0] == 200:
-                # A8: this write WON (dispatched 200) — note any race.
-                await self._conflict_note(path)
+                # A8: this write WON (dispatched 200) — note any race,
+                # with this CALL's own plane (request-local; see above).
+                await self._conflict_note(path, plane)
             if resp is not None:
                 return resp
         except EngineDown as exc:
@@ -435,7 +446,7 @@ class Api:
             return await self._spy_beacon(payload)
         return None
 
-    async def _conflict_note(self, path: str) -> None:
+    async def _conflict_note(self, path: str, plane: str) -> None:
         """A8 — LAST-WRITE-WINS with logging.
 
         Called ONLY after a write was accepted (dispatched 200) — the
@@ -444,19 +455,27 @@ class Api:
         same resource class landed within CONFLICT_WINDOW_S, that is a
         conflict (winner = this call, loser = the previous one). The
         marker is ATTRIBUTION, never authorization.
+
+        A8.x — `plane` is this CALL's own attribution, threaded in from
+        `handle()` as a REQUEST-LOCAL value. Reading it back from shared
+        instance state was unsafe: this service serves concurrent
+        requests, and a stray one (e.g. the bridge's own 1 s status
+        poll) landing between this write's dispatch and its note could
+        rewrite the cached plane — silently dropping the conflict the
+        card demands be logged (found by the A8 cold-run, scenario T18).
         """
         cls = _CONFLICT_CLASSES.get(path)
         if cls is None:
             return
         now = self._clock()
         prev = self._ledger.get(cls)
-        if prev is not None and prev[0] != self._cur_plane \
+        if prev is not None and prev[0] != plane \
                 and (now - prev[1]) <= CONFLICT_WINDOW_S:
             self._conflict_seq += 1
             self.plane_conflicts += 1
             await self.spy.event(
                 "plane_conflict",
-                winner=self._cur_plane,
+                winner=plane,
                 loser=prev[0],
                 resource=cls,
                 route=path,
@@ -464,7 +483,7 @@ class Api:
                 gap_ms=int(max(0.0, (now - prev[1])) * 1000),
                 seq=self._conflict_seq,
             )
-        self._ledger[cls] = (self._cur_plane, now, path)
+        self._ledger[cls] = (plane, now, path)
 
     # --------------------------------------------------------------- handlers
     async def _health(self):

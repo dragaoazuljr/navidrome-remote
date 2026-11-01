@@ -1350,6 +1350,36 @@ function sendRepeatFromUi(cls, pressed) {
    * thing this milestone exists to prevent (broken player). */
   var pdStamps = [];
   var dormUntil = 0;
+
+  /* A8.x — HONEST handback assessment (ADR-006 PD-2, corrected).
+   * On an `sbc-offline` powerdown, `restoreAllElements()` above has
+   * already done the mechanical part: every element that EVER played a
+   * REAL stream keeps it (lastNativeUrl), unmuted. The elements that
+   * only knew the SYNTHEtic feed (armed as silent sync mirrors while the
+   * SBC spoke) never received a stream the page could re-fetch — the
+   * bridge cannot manufacture one without minting credentials into a
+   * URL (explicitly OUT of this milestone's scope: that contract needs
+   * upstream validation — ADR-006 addendum). Those elements therefore
+   * stay 100% NATIVE (cleared src, no sync attributes, un-muted — they
+   * can be played again through the page's own controls the moment the
+   * service is back), and the PENDING handback is LOGGED to the journal
+   * so the operator can see exactly which track died WITH the SBC. */
+  function handbackPending() {
+    try {
+      var els = document.querySelectorAll("audio,video");
+      for (var i = 0; i < els.length; i++) {
+        var meta = elMeta.get(els[i]);
+        if (!meta || !meta.silent) { continue; }
+        if (meta.lastNativeUrl !== null && meta.lastNativeUrl !== undefined) {
+          continue; /* the real stream was already handed back */
+        }
+        bridge.stats.handback_pending =
+            (bridge.stats.handback_pending || 0) + 1;
+        beacon("bridge-handback:pending", String(meta.trackId || ""));
+      }
+    } catch (_e) { /* logging must never break the powerdown */ }
+  }
+
   function powerdown(kind) {
     if (bridge.powerdownKind === kind &&
         (bridge.state === STATE_PASSIVE ||
@@ -1386,6 +1416,7 @@ function sendRepeatFromUi(cls, pressed) {
         bridge.degradedReason = "sbc-offline";
         bridge.engineDown = false;
         timers.reprobe = setInterval(probeRecovery, REPROBE_DEGRADED_MS);
+        handbackPending();
       } else {
         /* session-lost: SILENT — the login surface must stay 100%
          * native: no badge, no re-probe. */
@@ -1394,14 +1425,22 @@ function sendRepeatFromUi(cls, pressed) {
         bridge.engineDown = false;
       }
       beacon("bridge-powered-down", kind);
-      /* anti-flap: three powerdowns inside the window -> sleep. */
+      /* anti-flap: THREE powerdowns inside the window -> sleep.
+       * A8.x: `Array.prototype.every` is VACUOUSLY TRUE on a list with
+       * fewer than FLAP_MAX entries — the original predicate armed the
+       * dormancy on the SINGLE first powerdown and then swallowed every
+       * recovery heal inside it (a 20 s blackout must wake the bridge
+       * back up on the next probe). Dormancy now requires the FULL
+       * count of powerdowns inside the window. Found by the A8
+       * cold-run, scenario T17 (no re-join after sbc-offline). */
       pdStamps.push(Date.now());
       if (pdStamps.length > FLAP_MAX) {
         pdStamps.splice(0, pdStamps.length - FLAP_MAX);
       }
-      if (pdStamps.every(function (t) {
-        return Date.now() - t < FLAP_WINDOW_MS;
-      })) {
+      if (pdStamps.length >= FLAP_MAX &&
+          pdStamps.every(function (t) {
+            return Date.now() - t < FLAP_WINDOW_MS;
+          })) {
         dormUntil = Date.now() + FLAP_DORMANT_MS;
       }
     } catch (_e) { /* a powerdown must NEVER throw */ }

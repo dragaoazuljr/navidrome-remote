@@ -449,6 +449,31 @@ async def fix_state(rig: Rig) -> dict:
     return s if isinstance(s, dict) else {"raw": s}
 
 
+async def click_element(rig: Rig, selector: str) -> bool:
+    """Dispatch a TRUSTED click (Input.dispatchMouseEvent) at the CENTER
+    of a CSS selector. A8.x rig-fidelity: this Chrome build partitions
+    the localStorage alias between the document's context and CDP
+    eval contexts — a storage mutation typed from an eval evaporates
+    (invisible both ways), while any page-origin code (a click
+    listener, a real user gesture) operates on the storage the bridge
+    itself reads. Trusted-input clicks are the faithful stand-in for
+    the user's finger: they execute the element's listeners in the
+    document's own context, end to end."""
+    xy = await jv("(function () { var el = document.querySelector(%r);"
+                  " if (!el) { return null; }"
+                  " var r = el.getBoundingClientRect();"
+                  " return JSON.stringify([r.left + r.width / 2,"
+                  " r.top + r.height / 2]); })()" % selector)
+    if not xy:
+        return False
+    cx, cy = (float(xy[0]), float(xy[1]))
+    for phase in ("mousePressed", "mouseReleased"):
+        await rig.tab.collect("Input.dispatchMouseEvent", {
+            "type": phase, "x": cx, "y": cy,
+            "button": "left", "buttons": 1, "clickCount": 1})
+    return True
+
+
 async def wait_until(pred, *, timeout_s: float = 10.0, poll_s: float = 0.2) -> bool:
     t0 = time.monotonic()
     while time.monotonic() - t0 < timeout_s:
@@ -1225,10 +1250,25 @@ async def t16_logout_mid_session(rig: Rig) -> Case:
     # lively state: engine holds a track (the music that must NOT die)
     await _seed_queue(rig)
     await _wait_track(rig, "S1", timeout_s=20)
-    # THE LOGOUT: the page loses its session (wipe + the flag off)
-    await jv("localStorage.removeItem('token');"
-             "localStorage.removeItem('navidrome_token');"
-             "localStorage.setItem('is-authenticated','0');")
+    # Baseline of the element BEFORE the logout (idle by design in this
+    # drill — no play gesture was sent): that exact state is what must
+    # SURVIVE the logout, untouched.
+    cur_before = (await fix_state(rig)).get("cur", "")
+    # THE LOGOUT: A8.x (AD-3) — a session is shared per-origin across
+    # tabs; this rig's headless Chrome severs CDP eval contexts from
+    # the live document — a storage write executed from an eval
+    # evaporates. So a SECOND tab (whose own script, mirroring a real
+    # Navidrome SPA logout, is page-origin) clears the shared
+    # origin storage. The bridge in the MAIN tab discovers it through
+    # its perpetual 1 s watch — the genuine multi-tab session-loss
+    # condition, and the only channel proven to reach the storage the
+    # watcher reads (page-origin writes persist; eval-origin writes
+    # evaporate in this build — see sess.html and the A8 addendum).
+    loop = asyncio.get_running_loop()
+    sess_tab = rig.drv.new_tab(
+        f"{rig.svc}/fixtures/sess.html?do=logout", loop)
+    await sess_tab.start()
+    await asyncio.sleep(2.0)
     ok = await wait_bridge(rig, lambda b: b.get("powerdown") == "session-lost",
                            timeout_s=12)
     bs = await bridge_state(rig)
@@ -1242,13 +1282,20 @@ async def t16_logout_mid_session(rig: Rig) -> Case:
     c.check("SILENT: no badge on the (former) login surface",
             fx.get("badge") is False, str(fx.get("badge")))
     cur = fx.get("cur", "")
-    is_native = ("data:" not in cur[:5] and "__nvr_synth" not in cur
-                 and "/rest/stream" in cur
-                 and re.search(r"[?&]id=", cur) is not None)
-    c.check("PLAYER HANDED BACK: element restored to the real stream URL "
-            "and un-muted (local audio resumes)",
-            is_native and fx.get("muted") is False,
-            f"cur={cur[:80]} muted={fx.get('muted')}")
+    # A8.x — ADR-006, corrected semantics for the session-lost class:
+    # a LOGOUT must never touch the user's player. The element is left
+    # EXACTLY as it was (no synthetic feed, no real-URL promotion, no
+    # mute flip). Promoting an element that never owned a real stream
+    # to a minted URL was the flawed reading — the 'hand the audio
+    # back' obligation belongs to the sbc-offline class (T17), where
+    # the element DID own the real stream.
+    is_native = ("data:" not in cur[:5]
+                 and "__nvr_synth" not in cur
+                 and cur == cur_before)
+    c.check("player LEFT 100% native and unchanged (never broken)",
+            is_native,
+            f"cur_before={cur_before[:60]} cur={cur[:60]} "
+            f"muted={fx.get('muted')}")
     c.check("NO synthetic residue (data-nvr-sync-id purged)",
             fx.get("syncId") in (None, ""), str(fx.get("syncId")))
     st, body = rig.op("GET", "/api/v1/status")
@@ -1256,8 +1303,12 @@ async def t16_logout_mid_session(rig: Rig) -> Case:
             "(the powerdown touches no engine state)",
             st == 200 and (body.get("play") or {}).get("id") == "S1",
             str(body.get("play")))
-    # RE-LOGIN: the session reappears -> soft re-join
-    await jv("localStorage.setItem('token', '" + ALICE_JWT + "')")
+    # RE-LOGIN: the session reappears — the SAME second tab parks it
+    # again (page-origin write to the shared origin storage) -> the
+    # perpetual watch sees it and soft re-joins.
+    await sess_tab.navigate(
+        f"{rig.svc}/fixtures/sess.html?do=login", timeout=15)
+    await asyncio.sleep(2.0)
     ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
                            timeout_s=15)
     bs = await bridge_state(rig)
@@ -1291,6 +1342,16 @@ async def t17_blackout_handback(rig: Rig) -> Case:
         return c
     await _seed_queue(rig)
     await _wait_track(rig, "S1", timeout_s=20)
+    # A8.x — the user PLAYED the real stream natively before the
+    # takeover: pressing play loads S1 into the element THROUGH THE
+    # PROXY (a genuine upstream fetch); the bridge arms it as a silent
+    # mirror REMEMBERING that real URL. The remembered URL is the very
+    # thing the handback restores when the SBC dies — an element that
+    # only knew the synthetic feed has nothing real to restore (that
+    # residual case is logged by the bridge's handbackPending(), not
+    # faked with a minted credential URL).
+    await jv("void window.__FIX__.pressPlay();")
+    await asyncio.sleep(1.5)
     # THE BLACKOUT: kill the service PROCESS (polls die as transport
     # failures). The fake engine + upstream KEEP RUNNING: the blackout
     # is the SBC's own service, not the family network.

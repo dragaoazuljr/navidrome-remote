@@ -20,6 +20,12 @@ window.__APP_CONFIG__ = {version: "0.64.2"};
   <input id="rseek" type="range" min="0" max="215" step="1" value="0" aria-label="Seek Bar">
   <input id="rvol" type="range" min="0" max="100" step="1" value="80" aria-label="Volume">
   <span id="np" style="margin-left:12px;"></span>
+  <!-- A8.x — the SPA's session controls (page-origin handlers; fired
+       by TRUSTED clicks, exactly as a user logout/login would). -->
+  <span style="float:right;margin-left:12px;">
+    <button id="nl-logout" aria-label="Log out" title="Log out">&#10005;</button>
+    <button id="nl-login" aria-label="Log in" title="Log in">&#9724;</button>
+  </span>
 </div>
 <audio id="ndp" preload="auto"></audio>
 <script>
@@ -151,6 +157,19 @@ window.__APP_CONFIG__ = {version: "0.64.2"};
   rvol.addEventListener("change", function () {
     pl.volume = (parseFloat(rvol.value) || 0) / 100;
   });
+  /* A8.x — SPA session controls: real listeners on real buttons,
+     firing the SAME page-origin handlers exposed via __FIX__.
+     Scenarios activate them with TRUSTED input events
+     (Input.dispatchMouseEvent) — the bridge's watcher sees the
+     resulting storage transitions exactly as it would a user. */
+  var nlo = document.getElementById("nl-logout"),
+      nli = document.getElementById("nl-login");
+  nlo.addEventListener("click", function () {
+    window.__FIX__.spaLogout();
+  });
+  nli.addEventListener("click", function () {
+    window.__FIX__.spaLogin();
+  });
 
   /* Test seam (invokes the real DOM elements — same event path a user
    * gesture takes; nothing here bypasses the bridge's listeners). */
@@ -159,6 +178,22 @@ window.__APP_CONFIG__ = {version: "0.64.2"};
     pressNext: function () { bn.click(); },
     pressPrev: function () { bq.click(); },
     holdEnded: function (v) { held = !!v; },
+    /* A8.x — the SPA's OWN session handlers (PAGE-ORIGIN code: this
+       is the only channel that mutates the storage the bridge's
+       perpetual watcher observes in this rig — CDP eval contexts
+       partition the localStorage alias in this Chrome build; a
+       mutation typed from an eval evaporates. See ADR-006 addendum
+       AD-3. The buttons #nl-logout / #nl-login below fire these
+       through TRUSTED input events, i.e. exactly as a user would. */
+    spaLogout: function () {
+      localStorage.removeItem("token");
+      localStorage.removeItem("navidrome_token");
+      localStorage.setItem("is-authenticated", "0");
+    },
+    spaLogin: function () {
+      localStorage.setItem("token", TOKEN);
+      localStorage.setItem("is-authenticated", "true");
+    },
     prime: function (id) {
       /* Deterministic starting point for scripted gestures: park
          the page on `id` (mirroring the engine's current track)

@@ -328,6 +328,47 @@ class ConflictLedgerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(cf), 1)
         self.assertEqual((cf[0]["winner"], cf[0]["loser"]), ("ext", "ui"))
 
+    async def test_i_concurrent_poll_cannot_steal_attribution(self):
+        """A8.x REGRESSION (the T18 class, found by the cold-run): the
+        original implementation cached the plane on the INSTANCE
+        (`self._cur_plane`), so ANY other request completing between a
+        write's dispatch and its ledger note rewrote it. In the rig the
+        bridge's own 1 s status poll is a standing source of exactly
+        that interleaving: the external write's note read 'ui' back and
+        the conflict the card mandates was silently dropped.
+
+        Plane is now threaded PER REQUEST; this test emulates the race
+        by running a ui-plane status poll INSIDE the volume write's
+        dispatch (mid-handling) — the conflict must still be recorded
+        with the write's own (external) plane."""
+        self.events.clear()
+        self.clock.advance(80)
+        s, _, _ = await call(self.api, "POST", "/api/v1/volume",
+                             {"level": 40}, plane="ui")
+        self.assertEqual(s, 200)
+        self.clock.advance(0.75)
+        orig = self.api._dispatch
+
+        async def racy(method_: str, path_: str,
+                       payload_: dict) -> "tuple[int, str, bytes] | None":
+            resp = await orig(method_, path_, payload_)
+            # the bridge's own heartbeat lands mid-flight:
+            await call(self.api, "GET", "/api/v1/status", plane="ui")
+            return resp
+
+        self.api._dispatch = racy  # type: ignore[assignment]
+        try:
+            s, _, _ = await call(self.api, "POST", "/api/v1/volume",
+                                 {"level": 55})
+            self.assertEqual(s, 200)
+        finally:
+            self.api._dispatch = orig
+        cf = self._conflicts_so_far()
+        self.assertEqual(len(cf), 1)
+        self.assertEqual((cf[0]["winner"], cf[0]["loser"]),
+                         ("ext", "ui"))
+        self.assertEqual(cf[0]["resource"], "volume")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>session control</title>
+</head>
+<body>
+<p id="out">working…</p>
+<script>
+(function () {
+  "use strict";
+  /* ------------------------------------------------------------------
+   * Session controller (A8.x, AD-3): a second document on the SAME
+   * origin, driven BY ITS OWN SCRIPT, that creates or destroys the
+   * shared localStorage session — exactly what a user logging out in
+   * a second browser tab does (localStorage is per-origin and shared
+   * across tabs; the other tab's bridge discovers it through its
+   * perpetual 1 s watch).
+   *
+   * Why this page exists at all: in this rig's headless Chrome, CDP
+   * eval contexts are severed from the live document — a storage write
+   * executed FROM an eval evaporates (invisible to the page's own
+   * reads), while page-origin script writes PERSIST (the main fixture's
+   * seed proves the channel: the bridge reads what the page wrote).
+   * The A7 matrix therefore never "logged the user out" — it only
+   * pretended to, from a severed context — which is why the cold A8
+   * re-run of T16 went red on the watcher's side of the house.
+   * Usage:  ?do=logout   clear the parked session
+   *          ?do=login    park it again (same derived identity)
+   * The result is written to <p id="out"> and the document title for
+   * the rig to poll.
+   * ------------------------------------------------------------------ */
+  var doWhat = null;
+  try { doWhat = new URLSearchParams(location.search).get("do"); } catch (e) {}
+  var out = document.getElementById("out");
+
+  function b64url(o) {
+    var s = JSON.stringify(o);
+    return btoa(unescape(encodeURIComponent(s)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  var PAYLOAD = {"username": "fxt_alice", "sub": "fxt_alice",
+                 "iat": 1793200000, "exp": 1793805600};
+  var TOKEN = b64url({"alg": "none", "typ": "JWT"}) + "." +
+              b64url(PAYLOAD) + "." + "fakesigfakesig";
+
+  if (doWhat === "logout") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("navidrome_token");
+    localStorage.setItem("is-authenticated", "0");
+    out.textContent = "LOGGED OUT (shared origin storage cleared)";
+    document.title = "sess:logout-ok";
+  } else if (doWhat === "login") {
+    localStorage.setItem("token", TOKEN);
+    localStorage.setItem("is-authenticated", "true");
+    out.textContent = "LOGGED IN (shared origin storage re-seeded)";
+    document.title = "sess:login-ok";
+  } else {
+    out.textContent = "usage: sess.html?do=logout | login";
+    document.title = "sess:bad-usage";
+  }
+})();
+</script>
+</body>
+</html>
