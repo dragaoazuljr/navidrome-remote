@@ -1,0 +1,532 @@
+{"ts":"2026-11-01T16:32:08.233Z","event":"req","cid":"127.0.0.1:36944","method":"GET","path":"/api/v1/health","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.233Z","event":"res","path":"/api/v1/health","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:08.238Z","event":"req","cid":"127.0.0.1:36952","method":"GET","path":"/fixtures/anon.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.242Z","event":"res","cid":"127.0.0.1:36952","path":"/fixtures/anon.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":8111,"transformed":true,"ms":6}
+{"ts":"2026-11-01T16:32:08.249Z","event":"req","cid":"127.0.0.1:36952","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.250Z","event":"res","path":"/bridge.js","status":200,"local":"bridge","bytes_":90362}
+{"ts":"2026-11-01T16:32:08.253Z","event":"req","cid":"127.0.0.1:36954","method":"GET","path":"/fixtures/anon.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.253Z","event":"res","cid":"127.0.0.1:36954","path":"/fixtures/anon.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":8111,"transformed":true,"ms":10}
+{"ts":"2026-11-01T16:32:08.263Z","event":"req","cid":"127.0.0.1:36954","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.272Z","event":"req","cid":"127.0.0.1:36958","method":"GET","path":"/favicon.ico","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:08.273Z","event":"res","cid":"127.0.0.1:36958","path":"/favicon.ico","status":404,"content_type":"text/plain","ce":"","set_cookie":"[REDACTED]","bytes_":14,"transformed":false,"ms":19}
+{"ts":"2026-11-01T16:32:10.287Z","event":"req","cid":"127.0.0.1:36958","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:10.333Z","event":"res","cid":"127.0.0.1:36958","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":2060}
+{"ts":"2026-11-01T16:32:10.349Z","event":"req","cid":"127.0.0.1:36958","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:11.390Z","event":"req","cid":"127.0.0.1:44692","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:11.411Z","event":"req","cid":"127.0.0.1:44694","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:11.431Z","event":"req","cid":"127.0.0.1:44708","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:11.478Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:11.520Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:11.520Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:11.520Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:11.525Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:11.557Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:11.578Z","event":"req","cid":"127.0.0.1:44720","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:11.624Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:11.686Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:12.137Z","event":"req","cid":"127.0.0.1:44730","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:12.168Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:12.402Z","event":"req","cid":"127.0.0.1:44736","method":"POST","path":"/api/v1/pause","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:12.454Z","event":"res","path":"/api/v1/pause","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:12.603Z","event":"req","cid":"127.0.0.1:44738","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:12.675Z","event":"req","cid":"127.0.0.1:44746","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:12.758Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:12.773Z","event":"req","cid":"127.0.0.1:44748","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:12.851Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:12.852Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.353Z","event":"req","cid":"127.0.0.1:44750","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.355Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.559Z","event":"req","cid":"127.0.0.1:44762","method":"POST","path":"/api/v1/resume","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.560Z","event":"api_resumed","action":"unpaused"}
+{"ts":"2026-11-01T16:32:13.560Z","event":"res","path":"/api/v1/resume","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.761Z","event":"req","cid":"127.0.0.1:44768","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.762Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.763Z","event":"req","cid":"127.0.0.1:44780","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.764Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.766Z","event":"req","cid":"127.0.0.1:44794","method":"POST","path":"/api/v1/seek","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.767Z","event":"res","path":"/api/v1/seek","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:13.872Z","event":"req","cid":"127.0.0.1:44804","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:13.985Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.000Z","event":"req","cid":"127.0.0.1:44806","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.037Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.068Z","event":"req","cid":"127.0.0.1:44816","method":"POST","path":"/api/v1/volume","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.104Z","event":"res","path":"/api/v1/volume","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.251Z","event":"req","cid":"127.0.0.1:44818","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.369Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.390Z","event":"req","cid":"127.0.0.1:44832","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.518Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:14.513Z","event":"req","cid":"127.0.0.1:44834","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.564Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.585Z","event":"req","cid":"127.0.0.1:44848","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:14.677Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:14.774Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.205Z","event":"req","cid":"127.0.0.1:44858","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:15.220Z","event":"req","cid":"127.0.0.1:44874","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:15.394Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.410Z","event":"req","cid":"127.0.0.1:44890","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:15.477Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.497Z","event":"req","cid":"127.0.0.1:44892","method":"POST","path":"/api/v1/next","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:15.534Z","event":"a6_double_intent_absorbed","path":"/api/v1/play","mode":"deferred-standing-down"}
+{"ts":"2026-11-01T16:32:15.534Z","event":"plane_conflict","winner":"ui","loser":"op","resource":"track","route":"/api/v1/play","prev_route":"/api/v1/queue","gap_ms":974,"seq":1}
+{"ts":"2026-11-01T16:32:15.544Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.590Z","event":"res","path":"/api/v1/next","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.796Z","event":"req","cid":"127.0.0.1:44902","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:15.934Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:15.960Z","event":"req","cid":"127.0.0.1:44908","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.047Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.063Z","event":"req","cid":"127.0.0.1:44916","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.068Z","event":"req","cid":"127.0.0.1:44922","method":"POST","path":"/api/v1/prev","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.135Z","event":"res","path":"/api/v1/prev","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.151Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.353Z","event":"req","cid":"127.0.0.1:44924","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.482Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.498Z","event":"req","cid":"127.0.0.1:44932","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.586Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:16.601Z","event":"plane_conflict","winner":"op","loser":"ui","resource":"track","route":"/api/v1/queue","prev_route":"/api/v1/prev","gap_ms":466,"seq":2}
+{"ts":"2026-11-01T16:32:16.617Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.653Z","event":"req","cid":"127.0.0.1:44940","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.755Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.781Z","event":"req","cid":"127.0.0.1:44948","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.786Z","event":"req","cid":"127.0.0.1:44954","method":"POST","path":"/api/v1/shuffle","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:16.812Z","event":"res","path":"/api/v1/shuffle","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:16.838Z","event":"req","cid":"127.0.0.1:44968","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.007Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.043Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.074Z","event":"req","cid":"127.0.0.1:44982","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.217Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.243Z","event":"req","cid":"127.0.0.1:44996","method":"POST","path":"/api/v1/shuffle","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.269Z","event":"res","path":"/api/v1/shuffle","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.458Z","event":"req","cid":"127.0.0.1:45006","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.560Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.591Z","event":"req","cid":"127.0.0.1:45020","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.709Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.735Z","event":"req","cid":"127.0.0.1:45028","method":"POST","path":"/api/v1/repeat","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.776Z","event":"res","path":"/api/v1/repeat","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.932Z","event":"req","cid":"127.0.0.1:45034","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.932Z","event":"plane_conflict","winner":"ui","loser":"op","resource":"track","route":"/api/v1/play","prev_route":"/api/v1/queue","gap_ms":1330,"seq":3}
+{"ts":"2026-11-01T16:32:17.932Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.962Z","event":"req","cid":"127.0.0.1:45040","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.963Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.964Z","event":"req","cid":"127.0.0.1:45048","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.966Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:17.967Z","event":"req","cid":"127.0.0.1:45062","method":"POST","path":"/api/v1/repeat","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:17.968Z","event":"res","path":"/api/v1/repeat","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.166Z","event":"req","cid":"127.0.0.1:45066","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.168Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.169Z","event":"req","cid":"127.0.0.1:45068","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.171Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.172Z","event":"req","cid":"127.0.0.1:45084","method":"POST","path":"/api/v1/repeat","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.172Z","event":"res","path":"/api/v1/repeat","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.371Z","event":"req","cid":"127.0.0.1:45092","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.373Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.374Z","event":"req","cid":"127.0.0.1:45096","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.375Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:18.375Z","event":"plane_conflict","winner":"op","loser":"ui","resource":"track","route":"/api/v1/queue","prev_route":"/api/v1/play","gap_ms":442,"seq":4}
+{"ts":"2026-11-01T16:32:18.375Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.376Z","event":"req","cid":"127.0.0.1:45098","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.377Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.378Z","event":"req","cid":"127.0.0.1:45110","method":"POST","path":"/api/v1/stop","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.379Z","event":"res","path":"/api/v1/stop","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.581Z","event":"req","cid":"127.0.0.1:45118","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.583Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.583Z","event":"req","cid":"127.0.0.1:45128","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.584Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.586Z","event":"req","cid":"127.0.0.1:45132","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.588Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:18.588Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.588Z","event":"req","cid":"127.0.0.1:45134","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.588Z","event":"a6_same_id_play_absorbed","path":"/api/v1/play"}
+{"ts":"2026-11-01T16:32:18.588Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.589Z","event":"req","cid":"127.0.0.1:45140","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.590Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.590Z","event":"req","cid":"127.0.0.1:45142","method":"POST","path":"/api/v1/seek","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.591Z","event":"res","path":"/api/v1/seek","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.673Z","event":"req","cid":"127.0.0.1:45154","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.674Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:18.794Z","event":"req","cid":"127.0.0.1:45162","method":"POST","path":"/api/v1/volume","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:18.794Z","event":"res","path":"/api/v1/volume","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:19.192Z","event":"req","cid":"127.0.0.1:45170","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:19.285Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:19.415Z","event":"req","cid":"127.0.0.1:45180","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:19.461Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:19.797Z","event":"req","cid":"127.0.0.1:45196","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:19.900Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:20.077Z","event":"req","cid":"127.0.0.1:45206","method":"POST","path":"/api/v1/pause","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:20.098Z","event":"plane_conflict","winner":"op","loser":"ui","resource":"transport","route":"/api/v1/pause","prev_route":"/api/v1/stop","gap_ms":1718,"seq":5}
+{"ts":"2026-11-01T16:32:20.108Z","event":"res","path":"/api/v1/pause","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:20.402Z","event":"req","cid":"127.0.0.1:52814","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:20.474Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:20.986Z","event":"req","cid":"127.0.0.1:52830","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.094Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.130Z","event":"req","cid":"127.0.0.1:52840","method":"POST","path":"/api/v1/pause","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.130Z","event":"req","cid":"127.0.0.1:52850","method":"GET","path":"/fixtures/sess.html?do=login","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.136Z","event":"req","cid":"127.0.0.1:52854","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.157Z","event":"res","cid":"127.0.0.1:52850","path":"/fixtures/sess.html?do=login","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":26}
+{"ts":"2026-11-01T16:32:21.162Z","event":"req","cid":"127.0.0.1:52850","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.179Z","event":"plane_conflict","winner":"ui","loser":"op","resource":"transport","route":"/api/v1/pause","prev_route":"/api/v1/pause","gap_ms":1080,"seq":6}
+{"ts":"2026-11-01T16:32:21.189Z","event":"res","path":"/api/v1/pause","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.210Z","event":"req","cid":"127.0.0.1:52864","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.215Z","event":"bridge","beacon":"bridge-loaded","detail":"session control"}
+{"ts":"2026-11-01T16:32:21.235Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.241Z","event":"req","cid":"127.0.0.1:52866","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.246Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:21.261Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.287Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.303Z","event":"req","cid":"127.0.0.1:52882","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.446Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.639Z","event":"req","cid":"127.0.0.1:52886","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.670Z","event":"res","cid":"127.0.0.1:52886","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":31}
+{"ts":"2026-11-01T16:32:21.686Z","event":"req","cid":"127.0.0.1:52886","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.706Z","event":"req","cid":"127.0.0.1:52896","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.722Z","event":"req","cid":"127.0.0.1:52908","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.723Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:21.723Z","event":"bridge","beacon":"bridge-exit","detail":"stats={\"engagements\":1,\"degradations\":0,\"recoveries\":0,\"powerdowns\":0,\"intents\":16,\"polls\":15,\"pollsFailed\":0,\"guardWrites\":38}"}
+{"ts":"2026-11-01T16:32:21.723Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.749Z","event":"req","cid":"127.0.0.1:52912","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.760Z","event":"req","cid":"127.0.0.1:52922","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.765Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:21.775Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.781Z","event":"req","cid":"127.0.0.1:52934","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.878Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.935Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:21.951Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:21.967Z","event":"req","cid":"127.0.0.1:52944","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:21.972Z","event":"req","cid":"127.0.0.1:52956","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.080Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.106Z","event":"req","cid":"127.0.0.1:52960","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.188Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.260Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.286Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:22.296Z","event":"bridge","beacon":"bridge-loaded","detail":"NDR Bridge UI — main (fixture)"}
+{"ts":"2026-11-01T16:32:22.311Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.332Z","event":"req","cid":"127.0.0.1:52974","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.700Z","event":"req","cid":"127.0.0.1:52976","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.743Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.784Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.805Z","event":"req","cid":"127.0.0.1:52984","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.922Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:22.954Z","event":"req","cid":"127.0.0.1:52998","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:22.955Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:23.240Z","event":"req","cid":"127.0.0.1:53008","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:23.241Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:23.743Z","event":"req","cid":"127.0.0.1:53024","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:23.745Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:24.262Z","event":"req","cid":"127.0.0.1:53028","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:24.350Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:24.862Z","event":"req","cid":"127.0.0.1:53034","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:24.970Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:25.481Z","event":"req","cid":"127.0.0.1:53050","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:25.584Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:27.457Z","event":"req","cid":"127.0.0.1:53064","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:27.555Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:27.601Z","event":"req","cid":"127.0.0.1:53068","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:27.606Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:27.617Z","event":"res","path":"/api/v1/status","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:27.632Z","event":"req","cid":"127.0.0.1:53078","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:27.637Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:27.648Z","event":"res","path":"/api/v1/spy","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:33.442Z","event":"req","cid":"127.0.0.1:34002","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.442Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:33.442Z","event":"res","path":"/api/v1/status","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:33.444Z","event":"req","cid":"127.0.0.1:34012","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.444Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:33.444Z","event":"res","path":"/api/v1/spy","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:33.445Z","event":"req","cid":"127.0.0.1:34018","method":"GET","path":"/rest/stream?id=S1&u=%5BREDACTED%5D&t=%5BREDACTED%5D&s=%5BREDACTED%5D&v=1.12.1&c=navidrome","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.446Z","event":"res","cid":"127.0.0.1:34018","path":"/rest/stream?id=S1&u=%5BREDACTED%5D&t=%5BREDACTED%5D&s=%5BREDACTED%5D&v=1.12.1&c=navidrome","status":200,"content_type":"audio/wav","ce":"","set_cookie":"[REDACTED]","bytes_":8044,"transformed":false,"ms":1}
+{"ts":"2026-11-01T16:32:33.621Z","event":"req","cid":"127.0.0.1:34018","method":"GET","path":"/fixtures/drift.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.622Z","event":"res","cid":"127.0.0.1:34018","path":"/fixtures/drift.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":8123,"transformed":true,"ms":175}
+{"ts":"2026-11-01T16:32:33.625Z","event":"req","cid":"127.0.0.1:34018","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"req","cid":"127.0.0.1:34032","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"res","path":"/api/v1/spy","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"req","cid":"127.0.0.1:34046","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"gate_deny_service_account","channel":"jwt","user":"sbc_service"}
+{"ts":"2026-11-01T16:32:33.629Z","event":"res","path":"/api/v1/spy","status":403,"local":"api"}
+{"ts":"2026-11-01T16:32:33.634Z","event":"req","cid":"127.0.0.1:34060","method":"GET","path":"/rest/stream?id=S1&u=%5BREDACTED%5D&t=%5BREDACTED%5D&s=%5BREDACTED%5D&v=1.12.1&c=navidrome","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:33.635Z","event":"res","cid":"127.0.0.1:34060","path":"/rest/stream?id=S1&u=%5BREDACTED%5D&t=%5BREDACTED%5D&s=%5BREDACTED%5D&v=1.12.1&c=navidrome","status":200,"content_type":"audio/wav","ce":"","set_cookie":"[REDACTED]","bytes_":8044,"transformed":false,"ms":0}
+{"ts":"2026-11-01T16:32:35.144Z","event":"req","cid":"127.0.0.1:34060","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.196Z","event":"res","cid":"127.0.0.1:34060","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":1561}
+{"ts":"2026-11-01T16:32:35.196Z","event":"req","cid":"127.0.0.1:34060","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.204Z","event":"req","cid":"127.0.0.1:34072","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.266Z","event":"req","cid":"127.0.0.1:34082","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.276Z","event":"req","cid":"127.0.0.1:34094","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.286Z","event":"req","cid":"127.0.0.1:34096","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.405Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:35.425Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.451Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:35.456Z","event":"bridge","beacon":"bridge-loaded","detail":"NDR Bridge UI — main (fixture)"}
+{"ts":"2026-11-01T16:32:35.467Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.467Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:35.472Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:32:35.477Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:35.482Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.493Z","event":"req","cid":"127.0.0.1:34106","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.493Z","event":"a6_same_id_play_absorbed","path":"/api/v1/play"}
+{"ts":"2026-11-01T16:32:35.493Z","event":"plane_conflict","winner":"ui","loser":"op","resource":"track","route":"/api/v1/play","prev_route":"/api/v1/queue","gap_ms":73,"seq":7}
+{"ts":"2026-11-01T16:32:35.494Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.494Z","event":"req","cid":"127.0.0.1:34120","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.550Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.622Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.643Z","event":"req","cid":"127.0.0.1:34132","method":"GET","path":"/fixtures/sess.html?do=login","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.674Z","event":"res","cid":"127.0.0.1:34132","path":"/fixtures/sess.html?do=login","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":31}
+{"ts":"2026-11-01T16:32:35.690Z","event":"req","cid":"127.0.0.1:34132","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.721Z","event":"req","cid":"127.0.0.1:34136","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.726Z","event":"bridge","beacon":"bridge-loaded","detail":"session control"}
+{"ts":"2026-11-01T16:32:35.736Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.752Z","event":"req","cid":"127.0.0.1:34140","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.757Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:35.767Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:35.772Z","event":"req","cid":"127.0.0.1:34148","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:35.850Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.161Z","event":"req","cid":"127.0.0.1:34150","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.162Z","event":"res","cid":"127.0.0.1:34150","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":0}
+{"ts":"2026-11-01T16:32:36.170Z","event":"req","cid":"127.0.0.1:34150","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.175Z","event":"bridge","beacon":"bridge-exit","detail":"stats={\"engagements\":1,\"degradations\":0,\"recoveries\":0,\"powerdowns\":0,\"intents\":1,\"polls\":1,\"pollsFailed\":0,\"guardWrites\":1}"}
+{"ts":"2026-11-01T16:32:36.180Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.191Z","event":"req","cid":"127.0.0.1:34156","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.242Z","event":"req","cid":"127.0.0.1:34158","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.252Z","event":"bridge","beacon":"bridge-loaded","detail":"NDR Bridge UI — main (fixture)"}
+{"ts":"2026-11-01T16:32:36.273Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.283Z","event":"req","cid":"127.0.0.1:34168","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.293Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:36.304Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.314Z","event":"req","cid":"127.0.0.1:34180","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.314Z","event":"req","cid":"127.0.0.1:34194","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.428Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.443Z","event":"req","cid":"127.0.0.1:34198","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.484Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:36.499Z","event":"plane_conflict","winner":"op","loser":"ui","resource":"track","route":"/api/v1/queue","prev_route":"/api/v1/play","gap_ms":1005,"seq":8}
+{"ts":"2026-11-01T16:32:36.515Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.515Z","event":"req","cid":"127.0.0.1:34214","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.552Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.664Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.685Z","event":"req","cid":"127.0.0.1:34220","method":"GET","path":"/fixtures/sess.html?do=logout","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.695Z","event":"req","cid":"127.0.0.1:34234","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.716Z","event":"res","cid":"127.0.0.1:34220","path":"/fixtures/sess.html?do=logout","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":31}
+{"ts":"2026-11-01T16:32:36.717Z","event":"req","cid":"127.0.0.1:34220","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.748Z","event":"req","cid":"127.0.0.1:34248","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.748Z","event":"bridge","beacon":"bridge-loaded","detail":"session control"}
+{"ts":"2026-11-01T16:32:36.753Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.769Z","event":"req","cid":"127.0.0.1:34254","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.779Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:36.794Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.851Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:36.877Z","event":"req","cid":"127.0.0.1:34260","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:36.985Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:37.478Z","event":"req","cid":"127.0.0.1:34276","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:37.493Z","event":"api_denied","path":"/api/v1/spy","reason":"token"}
+{"ts":"2026-11-01T16:32:37.509Z","event":"res","path":"/api/v1/spy","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:37.519Z","event":"req","cid":"127.0.0.1:34288","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:37.529Z","event":"api_denied","path":"/api/v1/spy","reason":"token"}
+{"ts":"2026-11-01T16:32:37.540Z","event":"res","path":"/api/v1/spy","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:37.550Z","event":"req","cid":"127.0.0.1:34302","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:37.555Z","event":"api_denied","path":"/api/v1/spy","reason":"token"}
+{"ts":"2026-11-01T16:32:37.565Z","event":"res","path":"/api/v1/spy","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:37.591Z","event":"req","cid":"127.0.0.1:34306","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:37.596Z","event":"api_denied","path":"/api/v1/status","reason":"token"}
+{"ts":"2026-11-01T16:32:37.606Z","event":"res","path":"/api/v1/status","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:37.622Z","event":"req","cid":"127.0.0.1:34322","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:37.622Z","event":"api_denied","path":"/api/v1/spy","reason":"token"}
+{"ts":"2026-11-01T16:32:37.627Z","event":"res","path":"/api/v1/spy","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:38.604Z","event":"req","cid":"127.0.0.1:34332","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:38.605Z","event":"api_denied","path":"/api/v1/spy","reason":"token"}
+{"ts":"2026-11-01T16:32:38.605Z","event":"res","path":"/api/v1/spy","status":401,"local":"api"}
+{"ts":"2026-11-01T16:32:38.680Z","event":"req","cid":"127.0.0.1:34336","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:38.681Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:38.684Z","event":"req","cid":"127.0.0.1:34344","method":"GET","path":"/fixtures/sess.html?do=login","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:38.685Z","event":"res","cid":"127.0.0.1:34344","path":"/fixtures/sess.html?do=login","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":3}
+{"ts":"2026-11-01T16:32:38.688Z","event":"req","cid":"127.0.0.1:34344","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.447Z","event":"req","cid":"127.0.0.1:34346","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.462Z","event":"bridge","beacon":"bridge-recovered","detail":"after session-lost"}
+{"ts":"2026-11-01T16:32:39.473Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.524Z","event":"req","cid":"127.0.0.1:34360","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.540Z","event":"req","cid":"127.0.0.1:34364","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.550Z","event":"bridge","beacon":"bridge-recovered","detail":"after session-lost"}
+{"ts":"2026-11-01T16:32:39.570Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.586Z","event":"req","cid":"127.0.0.1:34378","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.601Z","event":"bridge","beacon":"bridge-recovered","detail":"after session-lost"}
+{"ts":"2026-11-01T16:32:39.617Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.632Z","event":"req","cid":"127.0.0.1:34384","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.647Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:39.652Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.658Z","event":"req","cid":"127.0.0.1:34392","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.668Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:39.688Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.688Z","event":"req","cid":"127.0.0.1:34408","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.694Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:39.709Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.755Z","event":"req","cid":"127.0.0.1:34424","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.760Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:39.766Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.817Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.843Z","event":"req","cid":"127.0.0.1:34430","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:39.920Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:39.946Z","event":"req","cid":"127.0.0.1:34444","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.053Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.079Z","event":"req","cid":"127.0.0.1:34456","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.176Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.694Z","event":"req","cid":"127.0.0.1:51010","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.700Z","event":"req","cid":"127.0.0.1:51016","method":"GET","path":"/fixtures/sess.html?do=login","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.716Z","event":"res","cid":"127.0.0.1:51016","path":"/fixtures/sess.html?do=login","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":16}
+{"ts":"2026-11-01T16:32:40.721Z","event":"req","cid":"127.0.0.1:51016","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.722Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.727Z","event":"req","cid":"127.0.0.1:51022","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.743Z","event":"req","cid":"127.0.0.1:51030","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.754Z","event":"bridge","beacon":"bridge-loaded","detail":"session control"}
+{"ts":"2026-11-01T16:32:40.764Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.774Z","event":"req","cid":"127.0.0.1:51032","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:40.780Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:32:40.790Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.909Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:40.935Z","event":"req","cid":"127.0.0.1:51040","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.002Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.222Z","event":"req","cid":"127.0.0.1:51046","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.263Z","event":"res","cid":"127.0.0.1:51046","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":41}
+{"ts":"2026-11-01T16:32:41.279Z","event":"req","cid":"127.0.0.1:51046","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.289Z","event":"bridge","beacon":"bridge-exit","detail":"stats={\"engagements\":2,\"degradations\":0,\"recoveries\":1,\"powerdowns\":1,\"intents\":0,\"polls\":2,\"pollsFailed\":0,\"guardWrites\":0}"}
+{"ts":"2026-11-01T16:32:41.300Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.305Z","event":"req","cid":"127.0.0.1:51048","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.362Z","event":"req","cid":"127.0.0.1:51060","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.367Z","event":"bridge","beacon":"bridge-loaded","detail":"NDR Bridge UI — main (fixture)"}
+{"ts":"2026-11-01T16:32:41.377Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.382Z","event":"req","cid":"127.0.0.1:51070","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.393Z","event":"req","cid":"127.0.0.1:51082","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.398Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:32:41.408Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.414Z","event":"req","cid":"127.0.0.1:51090","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.563Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.589Z","event":"req","cid":"127.0.0.1:51102","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.614Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:32:41.625Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.636Z","event":"req","cid":"127.0.0.1:51114","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.810Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.830Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:41.846Z","event":"req","cid":"127.0.0.1:51116","method":"POST","path":"/api/v1/play","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:41.846Z","event":"a6_same_id_play_absorbed","path":"/api/v1/play"}
+{"ts":"2026-11-01T16:32:41.851Z","event":"plane_conflict","winner":"ui","loser":"op","resource":"track","route":"/api/v1/play","prev_route":"/api/v1/queue","gap_ms":231,"seq":9}
+{"ts":"2026-11-01T16:32:41.861Z","event":"res","path":"/api/v1/play","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:42.327Z","event":"req","cid":"127.0.0.1:51118","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:42.481Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:32:42.993Z","event":"req","cid":"127.0.0.1:51126","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:32:43.075Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:12.454Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:33:36.590Z","event":"req","cid":"127.0.0.1:51306","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:36.621Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:33:36.739Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:36.766Z","event":"req","cid":"127.0.0.1:51320","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:36.781Z","event":"bridge","beacon":"bridge-recovered","detail":"after sbc-offline"}
+{"ts":"2026-11-01T16:33:36.802Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:36.817Z","event":"req","cid":"127.0.0.1:51328","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:36.822Z","event":"req","cid":"127.0.0.1:51342","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:36.822Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:33:36.833Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:36.915Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:37.427Z","event":"req","cid":"127.0.0.1:51358","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:37.509Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:38.006Z","event":"req","cid":"127.0.0.1:51368","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:38.008Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:38.509Z","event":"req","cid":"127.0.0.1:51382","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:38.511Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:39.028Z","event":"req","cid":"127.0.0.1:51398","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:39.100Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.457Z","event":"req","cid":"127.0.0.1:60300","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.590Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.617Z","event":"req","cid":"127.0.0.1:60302","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.622Z","event":"req","cid":"127.0.0.1:60306","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.622Z","event":"bridge","beacon":"bridge-recovered","detail":"after sbc-offline"}
+{"ts":"2026-11-01T16:33:40.627Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.632Z","event":"req","cid":"127.0.0.1:60318","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.638Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:33:40.648Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.760Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.781Z","event":"req","cid":"127.0.0.1:60326","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.792Z","event":"req","cid":"127.0.0.1:60342","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.792Z","event":"bridge","beacon":"bridge-recovered","detail":"after sbc-offline"}
+{"ts":"2026-11-01T16:33:40.802Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.802Z","event":"req","cid":"127.0.0.1:60354","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:40.807Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:33:40.818Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.920Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:40.937Z","event":"req","cid":"127.0.0.1:60364","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.065Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:41.118Z","event":"req","cid":"127.0.0.1:60374","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.241Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:41.457Z","event":"req","cid":"127.0.0.1:60386","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.540Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:41.576Z","event":"req","cid":"127.0.0.1:60392","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.581Z","event":"bridge","beacon":"bridge-recovered","detail":"after sbc-offline"}
+{"ts":"2026-11-01T16:33:41.591Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:41.597Z","event":"req","cid":"127.0.0.1:60400","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.597Z","event":"req","cid":"127.0.0.1:60414","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:41.597Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:33:41.617Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:41.694Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:42.458Z","event":"req","cid":"127.0.0.1:60422","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:42.535Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:42.566Z","event":"req","cid":"127.0.0.1:60426","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:42.572Z","event":"bridge","beacon":"bridge-recovered","detail":"after sbc-offline"}
+{"ts":"2026-11-01T16:33:42.582Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:42.592Z","event":"req","cid":"127.0.0.1:60442","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:42.597Z","event":"req","cid":"127.0.0.1:60454","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:42.603Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:33:42.608Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:42.685Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:43.238Z","event":"req","cid":"127.0.0.1:60456","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:43.239Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:44.457Z","event":"req","cid":"127.0.0.1:60470","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.544Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:44.560Z","event":"req","cid":"127.0.0.1:60480","method":"GET","path":"/fixtures/sess.html?do=login","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.571Z","event":"req","cid":"127.0.0.1:60484","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.587Z","event":"res","cid":"127.0.0.1:60480","path":"/fixtures/sess.html?do=login","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":2709,"transformed":true,"ms":26}
+{"ts":"2026-11-01T16:33:44.608Z","event":"req","cid":"127.0.0.1:60480","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.639Z","event":"req","cid":"127.0.0.1:60500","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.654Z","event":"bridge","beacon":"bridge-loaded","detail":"session control"}
+{"ts":"2026-11-01T16:33:44.665Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:44.665Z","event":"req","cid":"127.0.0.1:60514","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.665Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=unknown"}
+{"ts":"2026-11-01T16:33:44.670Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:44.707Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:44.727Z","event":"req","cid":"127.0.0.1:60526","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:44.810Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.080Z","event":"req","cid":"127.0.0.1:60540","method":"GET","path":"/fixtures/main.html","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.122Z","event":"res","cid":"127.0.0.1:60540","path":"/fixtures/main.html","status":200,"content_type":"text/html; charset=utf-8","ce":"","set_cookie":"[REDACTED]","bytes_":9729,"transformed":true,"ms":41}
+{"ts":"2026-11-01T16:33:45.137Z","event":"req","cid":"127.0.0.1:60540","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.147Z","event":"bridge","beacon":"bridge-exit","detail":"stats={\"engagements\":2,\"degradations\":0,\"recoveries\":1,\"powerdowns\":1,\"intents\":2,\"polls\":7,\"pollsFailed\":5,\"guardWrites\":30}"}
+{"ts":"2026-11-01T16:33:45.158Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.168Z","event":"req","cid":"127.0.0.1:60556","method":"GET","path":"/bridge.js","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.209Z","event":"req","cid":"127.0.0.1:60562","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.220Z","event":"bridge","beacon":"bridge-loaded","detail":"NDR Bridge UI — main (fixture)"}
+{"ts":"2026-11-01T16:33:45.235Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.250Z","event":"req","cid":"127.0.0.1:60576","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.256Z","event":"req","cid":"127.0.0.1:60584","method":"POST","path":"/api/v1/spy","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.256Z","event":"bridge","beacon":"bridge-engaged","detail":"v=0.4.0-a8 page=0.64.2"}
+{"ts":"2026-11-01T16:33:45.261Z","event":"res","path":"/api/v1/spy","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.276Z","event":"req","cid":"127.0.0.1:60596","method":"POST","path":"/api/v1/queue","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.400Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.426Z","event":"req","cid":"127.0.0.1:60600","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.580Z","event":"store_apply_ok","items":3}
+{"ts":"2026-11-01T16:33:45.564Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.600Z","event":"res","path":"/api/v1/queue","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.631Z","event":"req","cid":"127.0.0.1:60604","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.729Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.755Z","event":"req","cid":"127.0.0.1:60618","method":"GET","path":"/api/v1/health","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.775Z","event":"res","path":"/api/v1/health","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:45.801Z","event":"req","cid":"127.0.0.1:60626","method":"POST","path":"/api/v1/volume","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:45.827Z","event":"res","path":"/api/v1/volume","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.076Z","event":"req","cid":"127.0.0.1:60638","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:46.158Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.447Z","event":"req","cid":"127.0.0.1:60644","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:46.560Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.581Z","event":"req","cid":"127.0.0.1:60650","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:46.673Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.689Z","event":"req","cid":"127.0.0.1:60662","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:46.705Z","event":"gate_allow","channel":"jwt","user":"fxt_alice"}
+{"ts":"2026-11-01T16:33:46.782Z","event":"req","cid":"127.0.0.1:60668","method":"POST","path":"/api/v1/volume","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:46.879Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.890Z","event":"plane_conflict","winner":"ext","loser":"ui","resource":"volume","route":"/api/v1/volume","prev_route":"/api/v1/volume","gap_ms":1067,"seq":1}
+{"ts":"2026-11-01T16:33:46.900Z","event":"res","path":"/api/v1/volume","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:46.916Z","event":"req","cid":"127.0.0.1:60684","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:47.044Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:47.055Z","event":"req","cid":"127.0.0.1:60696","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
+{"ts":"2026-11-01T16:33:47.142Z","event":"res","path":"/api/v1/status","status":200,"local":"api"}
+{"ts":"2026-11-01T16:33:47.163Z","event":"req","cid":"127.0.0.1:60702","method":"GET","path":"/api/v1/status","host":"127.0.0.1:54951","upgrade":false,"cookies":"[REDACTED]"}
