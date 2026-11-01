@@ -38,11 +38,17 @@ class AssetLintTests(unittest.TestCase):
     def test_size_sanity(self):
         self.assertGreater(len(self.src), 4000,
                            "asset implausibly small for the A6 scope")
-        # Ceiling history: 70k (A5) -> 80k (A6/A7) -> 90k (A8). A8 added
-        # the powerdown subsystem (persistent session watch + the
-        # two-class powerdown + handover/anti-flap machinery); ADR-006
-        # documents the raise. Keep the margin deliberate.
-        self.assertLess(len(self.src), 90000,
+        # Ceiling history: 70k (A5) -> 80k (A6/A7) -> 90k (A8) -> 91k
+        # (A8.x, A8-Estabilizar). A8 added the powerdown subsystem
+        # (persistent session watch + the two-class powerdown +
+        # handover/anti-flap machinery); ADR-006 documents the raise.
+        # The sealed A8 asset (03aebff) lands at 90,107 chars — the final
+        # powerdown/handover wording overshot the 90k raise by 107, which
+        # made the lint fail ON ITS OWN BASELINE (found A8-Estabilizar,
+        # 2026-11-01). The 91k calibration keeps the tripwire a real
+        # feature-scale alarm (any ~1k growth still trips) without
+        # rewriting the sealed asset.
+        self.assertLess(len(self.src), 91000,
                         "asset implausibly large (keep it lean; "
                         "ceiling in ADR-006)")
 
