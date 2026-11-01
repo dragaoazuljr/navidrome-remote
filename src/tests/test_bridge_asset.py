@@ -45,12 +45,16 @@ class AssetLintTests(unittest.TestCase):
         # The sealed A8 asset (03aebff) lands at 90,107 chars — the final
         # powerdown/handover wording overshot the 90k raise by 107, which
         # made the lint fail ON ITS OWN BASELINE (found A8-Estabilizar,
-        # 2026-11-01). The 91k calibration keeps the tripwire a real
-        # feature-scale alarm (any ~1k growth still trips) without
-        # rewriting the sealed asset.
-        self.assertLess(len(self.src), 91000,
+        # 2026-11-01). The 91k calibration kept the tripwire a real
+        # feature-scale alarm without rewriting the sealed asset. A9
+        # (version-gate by feature-probe: classifier, lazy demotion arm,
+        # warn/beacon, seam) lands at ~94.7k; ADR-007 documents the
+        # raise to 96k (layered-defense budget, same discipline as
+        # ADR-006: the cap tracks implemented defense layers, and ANY
+        # further growth needs its own recorded decision first).
+        self.assertLess(len(self.src), 96000,
                         "asset implausibly large (keep it lean; "
-                        "ceiling in ADR-006)")
+                        "ceiling in ADR-007, history in ADR-006)")
 
     def test_node_syntax_check(self):
         node = None
@@ -68,7 +72,7 @@ class AssetLintTests(unittest.TestCase):
 
     def test_version_and_anchor_constants(self):
         self.assertIn('"v0.64.2"', self.src)
-        self.assertIn('"0.4.0-a8"', self.src)
+        self.assertIn('"0.5.0-a9"', self.src)
 
     # ------------------------------------------------------ idempotency
     def test_single_global_guard(self):
@@ -143,6 +147,32 @@ class AssetLintTests(unittest.TestCase):
                       "marcador de plano (auditoria do last-write-wins) ausente")
         self.assertIn("FLAP_DORMANT_MS", self.src,
                       "anti-flap do powerdown (A8) ausente")
+
+    # ------------------------------------------------ A9 version-gate surface
+    def test_a9_version_gate_surface(self):
+        """A9 (ADR-007): POSITIVE identification of the UI generation.
+        Static pins: the feature probe exists and answers known/drift/
+        unknown; the broken-hook reason and beacon are present; the lazy
+        demotion arm for a foreign channel landing WHILE engaged; the
+        _classify seam the E2E/G6 read; and the DECISION ORDER (drift is
+        decided before the feature probe — a declared foreign version
+        outranks everything)."""
+        self.assertIn("function probeFeatures()", self.src,
+                      "feature probe ausente (A9: identificação positiva)")
+        self.assertIn("function classifyUi()", self.src)
+        self.assertIn("\"hook-mismatch\"", self.src,
+                      "razão de hook-partido ausente (A9)")
+        self.assertIn("\"feature-drift\"", self.src,
+                      "beacon feature-drift ausente (A9: aviso+audit)")
+        self.assertIn("lpForeignDone", self.src,
+                      "braço de demolição tardia (canal estranho durante "
+                      "engagement) ausente (A9)")
+        self.assertIn("_classify", self.src,
+                      "seam _classify ausente (E2E/G6 lê o veredicto)")
+        i_drift = self.src.index("return { k: \"drift\"")
+        i_unknown = self.src.index("return { k: \"unknown\"")
+        self.assertLess(i_drift, i_unknown,
+                        "ordem contratual: drift antes do probe de features")
 
     # ------------------------------------------------- payload hygiene
     def test_json_payloads_are_flat(self):

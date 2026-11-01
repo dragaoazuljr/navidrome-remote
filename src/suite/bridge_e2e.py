@@ -1203,6 +1203,66 @@ async def t13_anchor_drift(rig: Rig) -> Case:
     return c
 
 
+async def t19_broken_hook_version_change(rig: Rig) -> Case:
+    """A9 (ACEITE): a VERSAO DA UI mudou e o contrato da geracao caiu
+    (o fixture broke.html publica __APP_CONFIG__ SEM a chave `version`
+    que a ancora reconhece). O hook esta PARTIDO: o bridge deve
+    classificar UNKNOWN, NUNCA interceptar (player 100% nativo),
+    AVISAR (console.warn visivel em devtools) e BEACON
+    (feature-drift) — sem quebrar o player."""
+    c = Case("T19", "version changed (fixture): hook broken -> warning + "
+                    "NATIVE mode, player never broken (A9)")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/broke.html", timeout=15)
+    rig.tab.mark()
+    # janela de TEMPO deste caso: o buffer de console do CDP e
+    # compartilhado pelas 19 paginas da rodada e sofre trim; filtramos
+    # por timestamp do ultimo navegar (o nav_log registra a intencao
+    # ANTES das console-API calls da nova pagina).
+    nav_ts = max(n.get("ts", 0) for n in rig.tab.nav_log
+                 if "broke.html" in str(n.get("intent", "")))
+    ok = await wait_bridge(
+        rig, lambda b: b.get("state") == "degraded", timeout_s=15)
+    bs = await bridge_state(rig)
+    c.check("state == degraded", ok, str(bs.get("state")))
+    c.check("reason == hook-mismatch (broken hook, NOT drift)",
+            (bs.get("reason") or "") == "hook-mismatch",
+            str(bs.get("reason")))
+    cv = await jv("__NVRA_BRIDGE__._t._classify()")
+    c.check("_t._classify() => k == unknown (feature-probe negative)",
+            cv.get("k") == "unknown", str(cv))
+    # ACEITE: o aviso tem que aparecer no CONSOLE (devtools do browser)
+    warns = [m for m in rig.tab.console
+             if m.get("ts", 0) >= nav_ts
+             and m.get("level") in ("warning", "warn")
+             and "NDR-bridge" in str(m.get("text", ""))]
+    c.check("console.warn fired (aviso visible para quem opera a pagina)",
+            len(warns) >= 1, str(warns[:1]))
+    # o BEACON feature-drift tem que cruzar o espiao (gate A2 correlata)
+    evs = [e for e in rig.spy_events() if e.get("beacon") == "feature-drift"]
+    c.check("feature-drift beacon logged in the spy", len(evs) >= 1,
+            str(evs[:1]))
+    # mesma vara do T13: zero trafego de API alem do pad de spy gatado
+    page_reqs = rig.tab.requests_since_mark()
+    non_spy = [r for r in page_reqs
+               if str(r.get("url", "")).startswith("/api/v1/")
+               and not str(r.get("url", "")).endswith("/api/v1/spy")]
+    c.check("NO /api/v1/* intent/status traffic (never engaged)",
+            non_spy == [],
+            f"{len(non_spy)}: {[r['url'] for r in non_spy][:5]}")
+    # a pagina CONTINUA FUNCIONANDO: o player toca no CANAL NOVO da
+    # geracao simulada (/rest/stream2), nativo, sem mute — nunca quebra.
+    await jv("__FIX__.pressPlay()")
+    await asyncio.sleep(1.5)
+    fx = await fix_state(rig)
+    cur = fx.get("cur", "")
+    native_new_chan = ("stream2" in cur
+                       and re.search(r"[?&]id=", cur) is not None)
+    c.check("native playback of the NEW channel (stream2) unaffected",
+            native_new_chan and fx.get("muted") is False,
+            f"cur={cur[:90]} muted={fx.get('muted')}")
+    return c
+
+
 async def t14_recovery_reauth(rig: Rig) -> Case:
     c = Case("T14", "re-auth: a NEW session (new page) engages again and "
                     "controls the engine")
@@ -1626,6 +1686,7 @@ SCENARIOS = [
     ("T16", t16_logout_mid_session),
     ("T17", t17_blackout_handback),
     ("T18", t18_plane_conflict_last_write_wins),
+    ("T19", t19_broken_hook_version_change),
 ]
 
 

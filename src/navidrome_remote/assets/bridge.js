@@ -1,5 +1,5 @@
-/* navidrome-remote bridge — DEFINITIVE (A8)
- * Anchor: Navidrome UI v0.64.2  ·  version 0.4.0-a8
+/* navidrome-remote bridge — DEFINITIVE (A9)
+ * Anchor: Navidrome UI v0.64.2  ·  version 0.5.0-a9
  *
  * Injected by the proxy (inject.py) immediately before </head>: a plain
  * script, executed BEFORE the official SPA bundle, zero dependencies,
@@ -54,10 +54,17 @@
  *     * PASSIVE: no Navidrome session in the page (pre-login) — the
  *       bridge does nothing and shows nothing (spec: acts only with an
  *       active session; the wire-level spy still covers that interval).
- *     * ANCHOR DRIFT: the page declares a Navidrome version that
- *       differs from this build's anchor — no interception (the UI
- *       stays native, fully functional) + anchor-drift beacon (the
- *       A2 upgrade-gate correlates it).
+ *     * VERSION GATE (A9, ADR-007): the bridge engages only on a
+ *       positively IDENTIFIED generation (FEATURE-PROBE: a declared
+ *       version is a claim, not proof). Refusals — the UI stays 100%
+ *       native and the player is never broken:
+ *       - "anchor-drift": declared version != anchor (T13) — no
+ *         interception + anchor-drift beacon.
+ *       - "hook-mismatch": the contract is NOT verifiable (version
+ *         change took __APP_CONFIG__.version — BROKEN HOOK) or a
+ *         foreign channel reaches a player element while engaged —
+ *         console WARN + feature-drift beacon + badge. The A2 gate's
+ *         G6 fingerprint is the regression net for this.
  *     * POWERDOWN (A8): the SBC CONTROL BLOCK SWITCHES OFF. The native
  *       player is handed back — real stream URLs restored, un-muted,
  *       interception/polling/projection gone (100% native) — and the
@@ -124,7 +131,7 @@
 
   /* ------------------------------------------------------------- consts */
   var ANCHOR = "v0.64.2";
-  var VERSION = "0.4.0-a8";
+  var VERSION = "0.5.0-a9";
   var API = "/api/v1/";
   var LS_TOKEN_KEYS = ["token", "navidrome_token"]; /* v0.64.2: "token" */
 
@@ -217,13 +224,79 @@
     return null;
   }
 
+  function verBase(v) {
+    /* "v0.64.2 (10114574)" / "0.64.2" / "0.65.0-rc1" -> "0.64.2" /
+     * "0.64.2" / "0.65.0" (vendor prefix + build/tag suffix dropped) */
+    return String(v == null ? "" : v).replace(/^v/i, "")
+      .split("(")[0].split("-")[0].trim();
+  }
   function anchorMatch(v) {
     if (!v) {
       return true; /* unknown version: informational, do not break (A1 rule) */
     }
-    return v.replace(/^v/, "") === ANCHOR.replace(/^v/, "");
+    return verBase(v) === verBase(ANCHOR);
   }
 
+  /* ----- A9 (ADR-007): version gate by FEATURE-PROBE --------------
+      * A declared version is a CLAIM, not proof. This generation's
+   * contract (empirically characterized on the live v0.64.2, A9):
+   * __APP_CONFIG__ installed at RUNTIME, string-or-object carrier of a
+   * parsable version; /rest/ping is the independent black-box channel.
+   * OUTCOME: known / drift / unknown; unknown and drift degrade to
+   * 100% native and are NOT healed by the re-probe (the carrier is
+   * stable within a page's life).
+   */
+  function cfgRaw() {
+    try {
+      return window.__APP_CONFIG__ || null;
+    } catch (_e) {
+      return null;
+    }
+  }
+  function probeFeatures() {
+    /* Empirical contract of the anchored generation (characterized on
+     * the live v0.64.2, 2026-11-01): the SPA installs
+     * window.__APP_CONFIG__ at RUNTIME (raw HTML carries none) and the
+     * carrier is a SERIALIZED STRING bearing a version field (an object
+     * form also counts, for forward tolerance); the value is the FULL
+     * serverVersion "X.Y.Z (build)" - verBase normalizes it. A carrier
+     * that vanished, or stops yielding a parsable version, IS a
+     * renamed/broken contract -> unknown (never intercept). */
+    var g = cfgRaw(), miss = [];
+    if (g === null) {
+      miss.push("cfg-absent");
+    } else if (pageVersion() === null) {
+      miss.push("cfg-version");
+    }
+    return { ok: miss.length === 0, missing: miss };
+  }
+  function classifyUi() {
+    var v = pageVersion();
+    if (v && !anchorMatch(v)) {
+      return { k: "drift", v: v, f: probeFeatures() };
+    }
+    var f = probeFeatures();
+    if (f.ok) {
+      return { k: "known", v: (v || null), f: f };
+    }
+    return { k: "unknown", v: (v || null), f: f };
+  }
+  var lastWarnDetail = null; /* A9: boot + watcher can agree on the same
+                                * detail; warn once per distinct detail */
+  function warnHook(detail) {
+    /* A9 acceptance: the broken hook must WARN (console, visible in
+     * any devtools) in addition to the badge + the feature-drift
+     * beacon. The beacon itself cools per kind (60 s). */
+    var d = sanitize(String(detail || ""));
+    if (!d || d === lastWarnDetail) {
+      return;
+    }
+    lastWarnDetail = d;
+    try {
+      console.warn("[NDR-bridge] " + d);
+    } catch (_e) {}
+    beacon("feature-drift", d.slice(0, 512));
+  }
   /* ------------------------------------- silent feed (generated in RAM) */
   function buildSilenceWav() {
     /* 8 kHz, 16-bit mono, 10 s of digital zero — valid WAV the media
@@ -789,6 +862,7 @@ function handlePlaySwap(meta, cls) {
     };
   }
   var rawSetAttr = null;
+  var lpForeignDone = false; /* A9: one demotion per engagement */
 
   function unpatchPrototypes() {
     if (!protoPatched) {
@@ -823,6 +897,24 @@ function handlePlaySwap(meta, cls) {
     var state = getState();
     var cls = state === STATE_ENGAGED ? classifyMediaUrl(v) : null;
     if (!cls) {
+      if (state === STATE_ENGAGED && typeof v === "string" && v.length > 8 &&
+          v.indexOf("data:") !== 0 && v.indexOf("blob:") !== 0 &&
+          v.indexOf("__nvr_synth=1") < 0 && !lpForeignDone) {
+        /* A9 lazy arm: while engaged the only media channel of this
+         * generation is the Subsonic stream; a foreign one landing on a
+         * player element = the hook rotted (mid-life version bump).
+         * Async: the teardown never runs inside a setter. */
+        lpForeignDone = true;
+        var fv = String(v);
+        setTimeout(function () {
+          if (getState() !== STATE_ENGAGED) {
+            return;
+          }
+          warnHook("late foreign-src " + fv.slice(0, 64) +
+                   " anchor=" + ANCHOR);
+          degrade("hook-mismatch", "foreign-src");
+        }, 0);
+      }
       if (raw.src.set) {
         raw.src.set.call(el, v);
       } else {
@@ -1316,6 +1408,7 @@ function sendRepeatFromUi(cls, pressed) {
       bridge.state = STATE_ENGAGED;
       bridge.degradedReason = null;
       lastEngageAt = Date.now(); /* once per page: */
+      lpForeignDone = false; /* A9: the lazy arm re-arms per engagement */
       bridge.stats.engagements++;
       beacon("bridge-engaged", "v=" + VERSION + " page=" + (versionSeen || "unknown"));
       /* A7: a fresh engagement starts the adaptive machinery cold */
@@ -1466,13 +1559,20 @@ function sendRepeatFromUi(cls, pressed) {
   function applyGain() {
     if (bridge.state === STATE_ENGAGED) { return; }
     if (Date.now() < dormUntil) { return; /* anti-flap standby */ }
-    var v = pageVersion();
-    if (v !== null && !anchorMatch(v)) {
-      /* version gate: refuse to touch a foreign-version UI */
+    var c = classifyUi(); /* A9: features decide, not the label */
+    if (c.k !== "known") {
+      /* version gate: drift (foreign version) or unknown (broken hook)
+       * are NEVER touched — the player stays 100% native. */
       bridge.state = STATE_DEGRADED;
-      bridge.degradedReason = "anchor-drift";
+      bridge.degradedReason = (c.k === "drift") ? "anchor-drift" : "hook-mismatch";
       bridge.powerdownKind = null;
-      beacon("anchor-drift", "page=" + v + " anchor=" + ANCHOR);
+      if (c.k === "drift") {
+        beacon("anchor-drift", "page=" + c.v + " anchor=" + ANCHOR);
+      } else {
+        warnHook("page=" + (c.v || "none") +
+                 " missing=" + c.f.missing.join("+") +
+                 " anchor=" + ANCHOR);
+      }
       updateHint();
       return;
     }
@@ -1481,8 +1581,8 @@ function sendRepeatFromUi(cls, pressed) {
       bridge.stats.recoveries = (bridge.stats.recoveries || 0) + 1;
       beacon("bridge-recovered", "after session-lost");
     }
-    engage(v); /* SOFT re-join: a natively playing element is kept
-                 * native until its next load/selection (no snatch) */
+    engage(c.v); /* SOFT re-join: a natively playing element is kept
+                  * native until its next load/selection (no snatch) */
   }
   function watchTick() {
     var hs;
@@ -1604,6 +1704,11 @@ function sendRepeatFromUi(cls, pressed) {
     doFetch("GET", API + "status", null, { tag: "status-poll", noGateHandle: true })
       .then(function (res) {
         if (res.status === 200 && hasSession() && Date.now() >= dormUntil) {
+          var ck = classifyUi(); /* A9: the gate holds across a heal */
+          if (ck.k !== "known") {
+            beacon("reprobe-no-heal", "gate=" + ck.k);
+            return;
+          }
           /* session valid again (A8: a recovered SBc needs a LIVE page
            * session — session-missing never heals by re-probing) */
           bridge.stats.recoveries++;
@@ -1614,7 +1719,7 @@ function sendRepeatFromUi(cls, pressed) {
           }
           bridge.degradedReason = null;
           bridge.powerdownKind = null;
-          engage(pageVersion());
+          engage(ck.v);
         } else {
           /* visibility for QA: why the re-join did not fire */
           beacon("reprobe-no-heal", "status=" + res.status +
@@ -2115,6 +2220,9 @@ function sendRepeatFromUi(cls, pressed) {
     if (r === "anchor-drift") {
       return "SBC remote off — UI version differs from the SBC anchor (native playback)";
     }
+    if (r === "hook-mismatch") {
+      return "SBC remote off — UI features don't match the SBC anchor build (native playback)";
+    }
     if (r.indexOf("gate:service-account-forbidden") === 0) {
       return "SBC remote off — service account cannot authenticate from a browser (native playback)";
     }
@@ -2271,6 +2379,19 @@ function sendRepeatFromUi(cls, pressed) {
      * | null) — E2E asserts the two classes distinctly. */
     _powerdown: function () {
       return bridge.powerdownKind;
+    },
+    /* A9 (ADR-007): current version-gate verdict (flat, side-effect
+     * free) — read by the E2E and by the gate's ui_fingerprint. */
+    _classify: function () {
+      var c = classifyUi();
+      return {
+        k: c.k,
+        v: c.v || null,
+        missing: c.f.missing,
+        state: bridge.state,
+        reason: bridge.degradedReason || null,
+        bridge: VERSION
+      };
     }
   };
 
@@ -2281,11 +2402,16 @@ function sendRepeatFromUi(cls, pressed) {
     bridge.trace = function (kind, detail) {
       beacon(kind, detail);
     };
-    var pv = pageVersion();
-    if (pv !== null && !anchorMatch(pv)) {
-      /* will also be re-checked by the watcher after login; fire early
-       * while authenticated so the gate sees it immediately. */
-      var pb = { k: "anchor-drift", d: ("page=" + pv + " anchor=" + ANCHOR).slice(0, 512) };
+    var c0 = classifyUi();
+    if (c0.k !== "known") {
+      /* fire early while authenticated; the watcher re-checks. */
+      var pk = (c0.k === "drift") ? "anchor-drift" : "hook-mismatch";
+      var pd = (c0.k === "drift"
+                ? ("page=" + c0.v + " anchor=" + ANCHOR)
+                : ("page=" + (c0.v || "none") +
+                   " missing=" + c0.f.missing.join("+") +
+                   " anchor=" + ANCHOR)).slice(0, 512);
+      var pb = { k: pk, d: pd };
       var pj = pageJwt();
       if (pj) {
         pb.jwt = pj;
@@ -2293,6 +2419,9 @@ function sendRepeatFromUi(cls, pressed) {
       try {
         navigator.sendBeacon && navigator.sendBeacon("/api/v1/spy", JSON.stringify(pb));
       } catch (_e) { }
+      if (pk === "hook-mismatch") {
+        warnHook(pd); /* A9: the console WARN half of the warning */
+      }
     } else {
       beacon("bridge-loaded", document.title || "untitled");
     }

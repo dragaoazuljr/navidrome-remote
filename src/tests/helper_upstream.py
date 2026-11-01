@@ -223,6 +223,21 @@ class FakeUpstream:
                 ],
                 b"auth-required",
             )
+        if rq.method == "GET" and p == "/rest/stream2":
+            # A9 (fixture broke.html): the audio channel of a
+            # HYOTHETICAL next UI generation — same silence feed, a
+            # different ROUTE, outside the anchor's stream RX. The
+            # proxy forwards it (transparent); the bridge must never
+            # mistake it for the official channel.
+            return self._cl(
+                200,
+                "audio/wav",
+                SILENCE_WAV,
+                extra=[
+                    ("access-control-allow-origin", "*"),
+                    ("accept-ranges", "bytes"),
+                ],
+            )
         if rq.method == "GET" and p == "/rest/stream":
             # A6: the "audio delivery" of the fake. One small silence
             # file answers every shape (with or without Range — the
