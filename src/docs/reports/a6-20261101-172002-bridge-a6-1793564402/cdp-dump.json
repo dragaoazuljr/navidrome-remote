@@ -1,0 +1,5592 @@
+{
+ "requests": [
+  {
+   "id": "456C8D2C9926C2A88AB0F00715E24960",
+   "ts": 1793564402821,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/anon.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "8111"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.5",
+   "ts": 1793564402829,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/anon.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.7",
+   "ts": 1793564402839,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/favicon.ico",
+   "resourceType": "Other",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/anon.html"
+   },
+   "resp": {
+    "status": 404,
+    "mimeType": "text/plain",
+    "contentLength": 0,
+    "headers": [
+     [
+      "content-type",
+      "text/plain"
+     ],
+     [
+      "content-length",
+      "14"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "1C90E50BE2C0909AC1BF5C3D71F67DFA",
+   "ts": 1793564404845,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.9",
+   "ts": 1793564404897,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.11",
+   "ts": 1793564405918,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.12",
+   "ts": 1793564405918,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.13",
+   "ts": 1793564405932,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "23"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.14",
+   "ts": 1793564406700,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "236"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.15",
+   "ts": 1793564407032,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/pause",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "24"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.16",
+   "ts": 1793564407462,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "236"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.17",
+   "ts": 1793564407962,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "236"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.18",
+   "ts": 1793564408167,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/resume",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "45"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.19",
+   "ts": 1793564408375,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/seek",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "22"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.20",
+   "ts": 1793564408465,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.21",
+   "ts": 1793564408705,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/volume",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "22"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.22",
+   "ts": 1793564409392,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "187"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.23",
+   "ts": 1793564409724,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.24",
+   "ts": 1793564409797,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.25",
+   "ts": 1793564409797,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "48"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.26",
+   "ts": 1793564409933,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/next",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "21"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.27",
+   "ts": 1793564410318,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.28",
+   "ts": 1793564410431,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/prev",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "21"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.29",
+   "ts": 1793564410766,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.30",
+   "ts": 1793564410900,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/shuffle",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "26"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.31",
+   "ts": 1793564411100,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "236"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.32",
+   "ts": 1793564411228,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/shuffle",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "27"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.33",
+   "ts": 1793564411403,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.34",
+   "ts": 1793564411568,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/repeat",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "29"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.35",
+   "ts": 1793564411923,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "242"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.36",
+   "ts": 1793564412068,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "239"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.37",
+   "ts": 1793564412077,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/repeat",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "26"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.38",
+   "ts": 1793564412318,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "23"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.39",
+   "ts": 1793564412439,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "236"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.40",
+   "ts": 1793564412527,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/repeat",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "24"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.41",
+   "ts": 1793564412647,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/stop",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "24"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.42",
+   "ts": 1793564413028,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.43",
+   "ts": 1793564413532,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "238"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.44",
+   "ts": 1793564414121,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.45",
+   "ts": 1793564414778,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.46",
+   "ts": 1793564415383,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.47",
+   "ts": 1793564415500,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/pause",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "24"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.48",
+   "ts": 1793564415601,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "235"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "250E337B914D9F7C4AF1D25888D9CCE6",
+   "ts": 1793564416112,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.51",
+   "ts": 1793564416159,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.53",
+   "ts": 1793564416214,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.54",
+   "ts": 1793564416214,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.55",
+   "ts": 1793564416214,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.56",
+   "ts": 1793564416674,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "40"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.57",
+   "ts": 1793564422441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "234"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.58",
+   "ts": 1793564428441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 403,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "113"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.59",
+   "ts": 1793564428444,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 403,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "113"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.60",
+   "ts": 1793564428444,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/rest/stream?id=S1&u=fxt_user&<b64:redigido>&s=<redigido>&v=1.12.1&c=navidrome",
+   "resourceType": "Media",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Range": "bytes=0-"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "audio/wav",
+    "contentLength": 0,
+    "headers": [
+     [
+      "accept-ranges",
+      "bytes"
+     ],
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "8044"
+     ],
+     [
+      "content-type",
+      "audio/wav"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "439AC0A46969CEE0891E308989D492E5",
+   "ts": 1793564428454,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/drift.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "8123"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.62",
+   "ts": 1793564428461,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/drift.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.64",
+   "ts": 1793564428464,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/drift.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 403,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "113"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.65",
+   "ts": 1793564428464,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/drift.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 403,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "113"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.66",
+   "ts": 1793564428467,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/rest/stream?id=S1&u=fxt_user&<b64:redigido>&s=<redigido>&v=1.12.1&c=navidrome",
+   "resourceType": "Media",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/drift.html",
+    "Range": "bytes=0-"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "audio/wav",
+    "contentLength": 0,
+    "headers": [
+     [
+      "accept-ranges",
+      "bytes"
+     ],
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "8044"
+     ],
+     [
+      "content-type",
+      "audio/wav"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "B20CCA06872F72C902CF83A24F9DC141",
+   "ts": 1793564429973,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.68",
+   "ts": 1793564430025,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.70",
+   "ts": 1793564430054,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.71",
+   "ts": 1793564430054,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.72",
+   "ts": 1793564430054,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "237"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.73",
+   "ts": 1793564430295,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "40"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "A68DD496BDF1382CA0923EC28582D355",
+   "ts": 1793564431329,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.76",
+   "ts": 1793564431390,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.78",
+   "ts": 1793564431444,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.79",
+   "ts": 1793564431444,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.80",
+   "ts": 1793564431444,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "187"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.81",
+   "ts": 1793564433442,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 401,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "24"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.82",
+   "ts": 1793564435442,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.83",
+   "ts": 1793564435442,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.84",
+   "ts": 1793564435442,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "238"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "13277A546E84AE92EA6184C4FDEF68BB",
+   "ts": 1793564436676,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.87",
+   "ts": 1793564436723,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.89",
+   "ts": 1793564436781,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.90",
+   "ts": 1793564436781,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.91",
+   "ts": 1793564436781,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "188"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.92",
+   "ts": 1793564437197,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/play",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "40"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.93",
+   "ts": 1793564442441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.94",
+   "ts": 1793564447345,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/pause",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.95",
+   "ts": 1793564448441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.96",
+   "ts": 1793564454441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.97",
+   "ts": 1793564460441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.98",
+   "ts": 1793564466441,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   }
+  },
+  {
+   "id": "826726.99",
+   "ts": 1793564466443,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   }
+  },
+  {
+   "id": "826726.100",
+   "ts": 1793564466443,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/rest/stream?id=S1&u=fxt_user&<b64:redigido>&s=<redigido>&v=1.12.1&c=navidrome",
+   "resourceType": "Media",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Range": "bytes=0-"
+   }
+  },
+  {
+   "id": "826726.101",
+   "ts": 1793564497442,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "238"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.102",
+   "ts": 1793564497446,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.103",
+   "ts": 1793564497446,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.104",
+   "ts": 1793564497446,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "238"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "92DC3CB9EC2EBD53DA250FD612370E87",
+   "ts": 1793564499460,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/main.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "9729"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.107",
+   "ts": 1793564499521,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.109",
+   "ts": 1793564499570,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.110",
+   "ts": 1793564499570,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.111",
+   "ts": 1793564499570,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/api/v1/status",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "187"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.112",
+   "ts": 1793564500112,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/volume",
+   "resourceType": "Fetch",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/main.html",
+    "Content-Type": "application/json"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "22"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "0758D5B10C47DC6E6F535FDA0413EB30",
+   "ts": 1793564501620,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/fixtures/broke.html",
+   "resourceType": "Document",
+   "fromCache": false,
+   "reqHeadersKept": {},
+   "resp": {
+    "status": 200,
+    "mimeType": "text/html",
+    "contentLength": 0,
+    "headers": [
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "3555"
+     ],
+     [
+      "content-type",
+      "text/html; charset=utf-8"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.115",
+   "ts": 1793564501692,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/bridge.js",
+   "resourceType": "Script",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/broke.html"
+   },
+   "resp": {
+    "status": 304,
+    "mimeType": "application/javascript",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-cache"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.117",
+   "ts": 1793564501756,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/broke.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.118",
+   "ts": 1793564501757,
+   "method": "POST",
+   "url": "http://127.0.0.1:44877/api/v1/spy",
+   "resourceType": "Ping",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/broke.html",
+    "Content-Type": "text/plain;charset=UTF-8"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "application/json",
+    "contentLength": 0,
+    "headers": [
+     [
+      "cache-control",
+      "no-store"
+     ],
+     [
+      "content-length",
+      "25"
+     ],
+     [
+      "content-type",
+      "application/json; charset=utf-8"
+     ],
+     [
+      "connection",
+      "close"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  },
+  {
+   "id": "826726.119",
+   "ts": 1793564501761,
+   "method": "GET",
+   "url": "http://127.0.0.1:44877/rest/stream2?id=B1&u=fxt_user&<b64:redigido>&s=<redigido>&v=2.0.0&c=navidrome2",
+   "resourceType": "Media",
+   "fromCache": false,
+   "reqHeadersKept": {
+    "Referer": "http://127.0.0.1:44877/fixtures/broke.html",
+    "Range": "bytes=0-"
+   },
+   "resp": {
+    "status": 200,
+    "mimeType": "audio/wav",
+    "contentLength": 0,
+    "headers": [
+     [
+      "accept-ranges",
+      "bytes"
+     ],
+     [
+      "access-control-allow-origin",
+      "*"
+     ],
+     [
+      "content-length",
+      "8044"
+     ],
+     [
+      "content-type",
+      "audio/wav"
+     ]
+    ],
+    "setCookieNames": []
+   }
+  }
+ ],
+ "responses": {
+  "826726.2": {
+   "status": 200,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "94949"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "456C8D2C9926C2A88AB0F00715E24960": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "8111"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.5": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.7": {
+   "status": 404,
+   "mimeType": "text/plain",
+   "contentLength": 0,
+   "headers": [
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "content-length",
+     "14"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "1C90E50BE2C0909AC1BF5C3D71F67DFA": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.9": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.11": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.13": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "23"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.12": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.14": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "236"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.15": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "24"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.16": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "236"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.17": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "236"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.18": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "45"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.19": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "22"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.20": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.21": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "22"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.22": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "187"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.23": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.24": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.25": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "48"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.26": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "21"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.27": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.28": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "21"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.29": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.30": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "26"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.31": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "236"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.32": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "27"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.33": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.34": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "29"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.35": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "242"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.37": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "26"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.36": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "239"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.38": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "23"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.39": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "236"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.40": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "24"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.41": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "24"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.42": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.43": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "238"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.44": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.45": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.46": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.47": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "24"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.48": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "235"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "250E337B914D9F7C4AF1D25888D9CCE6": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.51": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.53": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.54": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.56": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "40"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.55": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.57": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "234"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.58": {
+   "status": 403,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "113"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.59": {
+   "status": 403,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "113"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.60": {
+   "status": 200,
+   "mimeType": "audio/wav",
+   "contentLength": 0,
+   "headers": [
+    [
+     "accept-ranges",
+     "bytes"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "8044"
+    ],
+    [
+     "content-type",
+     "audio/wav"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "439AC0A46969CEE0891E308989D492E5": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "8123"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.62": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.64": {
+   "status": 403,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "113"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.65": {
+   "status": 403,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "113"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.66": {
+   "status": 200,
+   "mimeType": "audio/wav",
+   "contentLength": 0,
+   "headers": [
+    [
+     "accept-ranges",
+     "bytes"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "8044"
+    ],
+    [
+     "content-type",
+     "audio/wav"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "B20CCA06872F72C902CF83A24F9DC141": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.68": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.70": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.71": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.73": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "40"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.72": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "237"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "A68DD496BDF1382CA0923EC28582D355": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.76": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.78": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.79": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.80": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "187"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.81": {
+   "status": 401,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "24"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.82": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.83": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.84": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "238"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "13277A546E84AE92EA6184C4FDEF68BB": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.87": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.89": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.90": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.91": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "188"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.92": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "40"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.101": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "238"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.102": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.103": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.104": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "238"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "92DC3CB9EC2EBD53DA250FD612370E87": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "9729"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.107": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.109": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.110": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.111": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "187"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.112": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "22"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "0758D5B10C47DC6E6F535FDA0413EB30": {
+   "status": 200,
+   "mimeType": "text/html",
+   "contentLength": 0,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "3555"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.115": {
+   "status": 304,
+   "mimeType": "application/javascript",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-cache"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.117": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.118": {
+   "status": 200,
+   "mimeType": "application/json",
+   "contentLength": 0,
+   "headers": [
+    [
+     "cache-control",
+     "no-store"
+    ],
+    [
+     "content-length",
+     "25"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "connection",
+     "close"
+    ]
+   ],
+   "setCookieNames": []
+  },
+  "826726.119": {
+   "status": 200,
+   "mimeType": "audio/wav",
+   "contentLength": 0,
+   "headers": [
+    [
+     "accept-ranges",
+     "bytes"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-length",
+     "8044"
+    ],
+    [
+     "content-type",
+     "audio/wav"
+    ]
+   ],
+   "setCookieNames": []
+  }
+ },
+ "console": [
+  {
+   "ts": 1793564402839,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564428442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564428445,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564428464,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564428465,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564433443,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564442442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564447345,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564448442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564454442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564460442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564466442,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564466443,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564466443,
+   "level": "error",
+   "text": "",
+   "src": "network"
+  },
+  {
+   "ts": 1793564501756,
+   "level": "warning",
+   "text": "[NDR-bridge] page=none missing=cfg-version anchor=v0.64.2"
+  }
+ ]
+}

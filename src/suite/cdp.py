@@ -653,10 +653,24 @@ class Tab:
         """
         # expressoes aqui sao IIFE/flecha (comecam com '(') -> parendo
         # simples segura; excecoes da pagina viram 'EXC::...'
-        wrapped = (
-            "(function(){ try { return (%s); }"
-            " catch (e) { return 'EXC::' + String(e && e.message); } })()"
-        ) % expr
+        # Contrato (A8.x R1): o wrapper espera uma EXPRESSAO iniciando
+        # com '(' (IIFE/flecha/comma): so a forma retornada entra no
+        # parendo simples. Excessos no estilo STATEMENT ("void f();",
+        # "a(); b();") viram sintaxe invalida DENTRO dos parenteses e o
+        # Runtime.evaluate MORRE EM SILENCIO — nenhuma execucao, nenhum
+        # erro. Incidente T17/T18 2026-11-01: pressPlay e _api eram
+        # no-ops invisiveis exatamente por isto. Terminado em ';', usar
+        # corpo-de-funcao (sentencas legais), senao manter o retorno.
+        if expr.strip().endswith(";"):
+            wrapped = (
+                "(function(){ try { %s"
+                " } catch (e) { return 'EXC::' + String(e && e.message); } })()"
+            ) % expr
+        else:
+            wrapped = (
+                "(function(){ try { return (%s); }"
+                " catch (e) { return 'EXC::' + String(e && e.message); } })()"
+            ) % expr
         resp = await self.session.send(
             "Runtime.evaluate",
             {"expression": wrapped, "returnByValue": True},

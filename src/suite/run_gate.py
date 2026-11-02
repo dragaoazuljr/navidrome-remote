@@ -6,15 +6,21 @@ Registra a suíte A2 como UM comando (gate), com veredicto automático:
   G0  âncora: versão black-box (env /rest/ping + __APP_CONFIG__ no HTML)
       vs ANCOR=0.64.2. Divergiu => DRIFT (resultado com confiança reduzida;
       o gate não promove).
-  G1  regressão: suíte unittest do repo (A1 + testes A2) — offline.
+  G1  regressão: unidade do repo, PROCESSOS ISOLADOS por
+      módulo (N-B3: sob discover o stress async se arrasta)
+      — offline.
   G2  cors_map.py: mapa CORS/OPTIONS por rota, canal directo×proxy,
       paridade normalizada (cláusula A / extensão de superfície).
   G3  ws_probe.py: cláusula B(i) — 101? espelhado? rompimento? (JSON out).
   G4  player_boot_capture.py (chrome headless): cláusula B(ii) — sessão
       Sob reload/navegação no ORIGIN PUBLICADO (listener do proxy); sem
-      chrome => degrada para 'pendente-QA'.
-  G5  baseline: diff vs GATE-DATA.json anterior; classes NONE/INFO/
-      MAJOR/BREAKING (novo 101 ou nova versão => BREAKING: re-spec).
+      chrome => degrada para 'pendente-QA'.      MAJOR/BREAKING (novo 101 ou nova versão => BREAKING: re-spec).
+  G6  UI fingerprint (A9): a geracao da UI oficial e identificada do
+      MESMO jeito que o bridge (feature-probe positivo via
+      _t._classify) e correlacionada com os canais black-box do G0.
+      Classes known/drift/unknown; RED => sem green-close (caminho
+      registrado: ADR-002/007). Sem chrome => pendente-QA (nao
+      bloqueia, nao aprova).
 
 Auto-levanta o serviço (padrão): sobe fake mpv sink + `python -m
 navidrome_remote` numa PORTA LIVRE (mesmo esquema do c1_probe.sh) e
@@ -29,7 +35,8 @@ VEREDICTO FINAL:
 Uso (dev-ws, user hermes):
   python3 suite/run_gate.py [--base-url http://LXC:4533] [--listen-port N]
       [--cred-file F] [--chrome BIN] [--attach] [--skip-browser]
-      [--baseline-anterior GATE-DATA.json] [--out-root DIR]
+      [--expect-version V] [--baseline-anterior GATE-DATA.json]
+      [--out-root DIR]
 """
 from __future__ import annotations
 
@@ -68,7 +75,7 @@ def _free_port() -> int:
 
 
 # ------------------------------------------------------------------- G0
-def g0_anchor(base_url: str) -> dict:
+def g0_anchor(base_url: str, expect: str = "") -> dict:
     """Versão black-box: (1) serverVersion no envelope /rest/ping;
     (2) version no __APP_CONFIG__ do HTML /. Nunca toca em credenciais."""
     out = {"version": None, "source": None,
@@ -95,7 +102,7 @@ def g0_anchor(base_url: str) -> dict:
         out["version"] = m.group(1)
         out["source"] = "/rest/ping (envelope)"
     st2, html = get(base_url + "/")
-    pm = re.search(r'__APP_CONFIG__\s*=\s*\{.*?"version":"([^"]+)"', html, re.S)
+    pm = re.search(r'__APP_CONFIG__\s*=\s*\{.*?\bversion["\']?\s*:\s*["\']([^"\'])', html, re.S)
     if pm:
         out["pageVersion"] = pm.group(1)
         if not out["version"]:
@@ -104,21 +111,58 @@ def g0_anchor(base_url: str) -> dict:
     out["match"] = bool(out["version"]) and \
         (out["version"].startswith(ANCHOR_VERSION)
          or out["version"] == ANCHOR_VERSION)
+    if expect:
+        out["expected"] = expect
+        out["match_expected"] = bool(out["version"]) and \
+            (out["version"] == expect
+             or out["version"].startswith(expect + "."))
+    else:
+        out["expected"] = None
+        out["match_expected"] = None
     return out
 
 
 # ------------------------------------------------------------------- G1
-def g1_units(timeout: int = 900) -> dict:
-    cmd = [PY, "-m", "unittest", "discover",
-           "-s", "tests", "-t", ".", "-v"]
+def g1_units(per_module_timeout: int = 900) -> dict:
+    """Regressao: unidade do repo em PROCESSOS ISOLADOS (um por modulo).
+    Sob o interprete unico do `discover`, `test_conflict_ledger:test_i`
+    se arrasta por acumulacao de async-debug dos modulos anteriores
+    (N-B3, documentado em A8-Gates); em processo isolado roda em <1 s.
+    O `discover` continuo estouraria o budget do gate. Cada modulo e
+    executado com timeout proprio; qualquer RC != 0 -> gate red."""
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join(
         [SUITE_PARENT] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
-    p = subprocess.run(cmd, cwd=SUITE_PARENT, env=env,
-                       capture_output=True, text=True, timeout=timeout)
-    tail = ((p.stdout or "") + ("\n" + (p.stderr or "")))[-2000:]
-    return {"exit_code": p.returncode, "ok": p.returncode == 0,
-            "tail": tail}
+    testsdir = os.path.join(SUITE_PARENT, "tests")
+    mods = sorted(os.path.splitext(f)[0]
+                  for f in os.listdir(testsdir)
+                  if f.startswith("test_") and f.endswith(".py"))
+    per = []
+    rc_total = 0
+    sigma_ran = 0
+    for m in mods:
+        p = subprocess.run([PY, "-m", "unittest", "tests.%s" % m],
+                           cwd=SUITE_PARENT, env=env,
+                           capture_output=True, text=True,
+                           timeout=per_module_timeout)
+        out = (p.stdout or "") + ("\n" + (p.stderr or ""))
+        import re as _re
+        rm = list(_re.finditer(r"^Ran (\d+) tests?", out, _re.M))
+        ran = int(rm[-1].group(1)) if rm else 0
+        okline = list(_re.finditer(r"^(OK|FAILED).*$", out, _re.M))
+        verdict = (okline[-1].group(1) if okline else "?")
+        sig = (verdict == "OK")
+        sk = _re.search(r"\(skipped=(\d+)\)", out)
+        per.append({"module": m, "rc": p.returncode, "ran": ran,
+                    "ok": sig and p.returncode == 0,
+                    "skipped": int(sk.group(1)) if sk else 0,
+                    "tail": out[-600:]})
+        rc_total |= (0 if p.returncode == 0 else 1)
+        sigma_ran += ran
+    fails = [x["tail"] for x in per if not x["ok"]]
+    return {"exit_code": rc_total, "ok": rc_total == 0,
+            "sigma_ran": sigma_ran, "modules": per,
+            "fail_tail": ("\n----\n".join(fails))[-2000:]}
 
 
 # ------------------------------------------------------------------- G2
@@ -201,6 +245,51 @@ def g4_boot(work: str, listen_port: int, upstream: str, vhost: str,
     return res
 
 
+# ------------------------------------------------------------------- G6
+def g6_fingerprint(listen_port: int, upstream: str, vhost: str,
+                   cred_file: str, chrome: str, skip: bool) -> dict:
+    """A9: fingerprint da generacao de UI SERVIDA PELO PROXY (subprocess
+    no padrao do G4). O probe e do proprio bridge (_t._classify) e se
+    correlaciona com o G0; emite green/red. Sem chrome => 'pendente-QA'
+    (neutro: nem bloqueia nem aprova)."""
+    if skip:
+        return {"skipped": True, "class": "pendente-QA"}
+    if not os.path.exists(chrome):
+        return {"skipped": True, "class": "pendente-QA",
+                "reason": "chrome ausente"}
+    cmd = [PY, os.path.join(SCRIPT_DIR, "ui_fingerprint.py"),
+           "--listen-addr", "127.0.0.1",
+           "--listen-port", str(listen_port),
+           "--upstream", upstream,
+           "--vhost", vhost,
+           "--chrome", chrome]
+    if cred_file:
+        cmd += ["--cred-file", cred_file]
+    p = subprocess.run(cmd, capture_output=True, text=True,
+                       timeout=3600)
+    res = {"exit_code": p.returncode,
+           "stdout_tail": (p.stdout or "")[-800:],
+           "stderr_tail": (p.stderr or "")[-800:]}
+    summary_line = next(
+        (ln for ln in reversed((p.stdout or "").splitlines())
+         if ln.startswith("SUMMARY=")), None)
+    doc = None
+    if summary_line:
+        try:
+            doc = json.loads(summary_line[len("SUMMARY="):])
+        except ValueError:
+            doc = None
+    res["doc"] = doc
+    if doc is None:
+        res["class"] = ("pendente-QA" if p.returncode == 0
+                        else "erro-operacional")
+        if p.returncode != 0:
+            res["reason"] = res["stderr_tail"][-200:]
+    else:
+        res["class"] = doc.get("verdict") or "pendente-QA"
+    return res
+
+
 # ------------------------------------------------------------------- G5
 def _key_metrics(gd: dict) -> dict:
     g0, g2, g3, g4 = (gd.get("g0_anchor") or {},
@@ -209,6 +298,8 @@ def _key_metrics(gd: dict) -> dict:
                       gd.get("g4_boot") or {})
     doc3 = g3.get("doc") or {}
     doc2 = g2.get("doc") or {}
+    doc6 = (gd.get("g6_fingerprint") or {}).get("doc") or {}
+    b6 = doc6.get("bridge") or {}
     return {
         "version": g0.get("version"),
         "ws_counts": g3.get("counts"),
@@ -222,6 +313,7 @@ def _key_metrics(gd: dict) -> dict:
             for p in doc2.get("pairs", []) if not p.get("mirror")}
             - {None}),
         "bii": g4.get("bii_verdict"),
+        "ui_class": b6.get("k") if b6 else None,
     }
 
 
@@ -252,12 +344,18 @@ def g5_baseline(curr: dict, prev_path: str) -> dict:
         if klass not in ("BREAKING",):
             klass = "MAJOR"
         notes.append("mapa de divergencia CORS mudou")
+    if cm.get("ui_class") != cp.get("ui_class"):
+        if klass not in ("BREAKING",):
+            klass = "MAJOR"
+        notes.append("fingerprint da UI mudou: %s -> %s (A9)"
+                     % (cm.get("ui_class"), cp.get("ui_class")))
     return {"baseline": prev_path, "class": klass, "notes": notes,
             "prev": cm, "curr": cp}
 
 
 # -------------------------------------------------------------- veredictos
-def compute_verdicts(anchor_ok: bool, g3: dict, g4: dict) -> dict:
+def compute_verdicts(anchor_ok: bool, g3: dict, g4: dict,
+                     g6: "dict | None" = None) -> dict:
     cnt = g3.get("counts") or {}
     if g3.get("skipped"):
         bi_i = "inconclusivo (suite pulada)"
@@ -270,11 +368,21 @@ def compute_verdicts(anchor_ok: bool, g3: dict, g4: dict) -> dict:
     else:
         bi_i = "RED-facto (recusas espelhadas; v0.64.2 sem 101)"
     bi_ii = g4.get("bii_verdict")
-    closed_green = (anchor_ok and bi_i == "VERDE" and bi_ii == "VERDE")
+    g6doc = (g6 or {}).get("doc") or {}
+    fp_k = (g6doc.get("bridge") or {}).get("k") if g6doc else None
+    fp_pending = not g6doc
+    fp_red = (not fp_pending) and (
+        g6doc.get("verdict") == "red"
+        or g6doc.get("crosscheck_ok") is False
+        or fp_k != "known")
+    closed_green = (anchor_ok and bi_i == "VERDE" and bi_ii == "VERDE"
+                    and not fp_red)
     return {
         "anchor": anchor_ok,
         "B(i)_ws": bi_i,
         "B(ii)_sessao": bi_ii,
+        "FP_UI": ("skipped" if fp_pending
+                  else ("green" if not fp_red else "red")),
         "spike_closed_green": closed_green,
         "spike_closed_via_fallback": not closed_green,
         "fallback_decision_ref":
@@ -381,6 +489,35 @@ def render_report(gd: dict, ver: dict, g5res: dict, ts: str) -> str:
     else:
         ap("- bootstrap indisponivel neste gate (%s)"
            % (boot.get("reason") or boot.get("skipped")))
+    fp = gd.get("g6_fingerprint") or {}
+    fpdoc = fp.get("doc") or {}
+    ap("")
+    ap("## 4b. UI Fingerprint (A9 — gate de compatibilidade por versao)")
+    ap("")
+    if not fpdoc:
+        ap("_Etapa indisponivel: classe **%s** (nem bloqueia nem aprova)._\n"
+           % (fp.get("class") or "pendente-QA"))
+    else:
+        b6 = fpdoc.get("bridge") or {}
+        hc = fpdoc.get("html_cfg") or {}
+        ap("| origem | valor |")
+        ap("|---|---|")
+        ap("| /rest/ping `serverVersion` | `%s` (http %s) |"
+           % (fpdoc.get("ping_version"), fpdoc.get("ping_http_status")))
+        ap("| pagina `__APP_CONFIG__` | version=`%s` build=`%s` |"
+           % (hc.get("version"), hc.get("build")))
+        ap("| bridge `_t._classify()` | `%s` (v=`%s`, missing=`%s`) |"
+           % (b6.get("k"), b6.get("v"),
+              ",".join(b6.get("missing") or []) or "-"))
+        ap("| versao do bridge | `%s` |" % b6.get("bridge"))
+        cc = fpdoc.get("crosscheck_ok")
+        ap("| correlacao bridge x black-box | **%s** |"
+           % ("OK" if cc else
+              ("nao avaliavel" if cc is None else "**KO**")))
+        for rsn in fpdoc.get("bridge_missing_reasons") or []:
+            ap("- motivo: %s" % rsn)
+        ap("")
+        ap("**Classe do gate: %s**" % str(ver.get("FP_UI", "?")).upper())
     ap("")
     ap("## 5. Baseline (diff vs execucao anterior)")
     ap("")
@@ -394,6 +531,8 @@ def render_report(gd: dict, ver: dict, g5res: dict, ts: str) -> str:
     ap("|---|---|")
     ap("| ancora v%s | %s |"
        % (ANCHOR_VERSION, "OK" if ver["anchor"] else "**DRIFT**"))
+    ap("| fingerprint UI (A9) | %s |"
+       % str(ver.get("FP_UI", "-")).upper())
     ap("| B(i) WebSocket | %s |" % ver["B(i)_ws"])
     ap("| B(ii) sessao | %s |" % ver["B(ii)_sessao"])
     ap("| SPIKE CLOSED (green) | **%s** |"
@@ -544,6 +683,9 @@ def main() -> int:
     ap.add_argument("--skip-browser", action="store_true")
     ap.add_argument("--skip-cors", action="store_true")
     ap.add_argument("--skip-ws", action="store_true")
+    ap.add_argument("--expect-version", default="",
+                    help="versao esperada NESTA rodada: G0 ganha match_"
+                         "expected (vazia = compara apenas com a ancora)")
     ap.add_argument("--baseline-anterior", default="")
     ap.add_argument("--out-root", default=os.path.join(
         REPO_ROOT, "src", "docs", "reports"))
@@ -599,15 +741,17 @@ def main() -> int:
 
     try:
         print("[G0] ancora black-box...", flush=True)
-        gd["g0_anchor"] = g0_anchor(args.base_url)
+        gd["g0_anchor"] = g0_anchor(args.base_url, args.expect_version)
         print("    version=%s match=%s"
               % (gd["g0_anchor"]["version"],
                  gd["g0_anchor"]["match"]))
 
         print("[G1] suite unit (regressao)...", flush=True)
         gd["g1_units"] = g1_units()
-        print("    ok=%s (rc=%s)"
-              % (gd["g1_units"]["ok"], gd["g1_units"]["exit_code"]))
+        print("    ok=%s rc=%s sigma_ran=%d (%d modulos)"
+              % (gd["g1_units"]["ok"], gd["g1_units"]["exit_code"],
+                 gd["g1_units"]["sigma_ran"],
+                 len(gd["g1_units"]["modules"])))
 
         # G3 ANTES do G2: ws_probe e o UNICO login direto da rodada
         # (escreve o cookie 0600); cors_map o reutiliza (zero POST).
@@ -633,12 +777,19 @@ def main() -> int:
                                 skip=args.skip_browser)
         print("    bii=%s" % (gd["g4_boot"].get("bii_verdict")))
 
+        print("[G6] UI fingerprint (A9)...", flush=True)
+        gd["g6_fingerprint"] = g6_fingerprint(
+            listen_port, args.upstream, args.vhost,
+            args.cred_file, args.chrome, args.skip_browser)
+        print("    class=%s" % (gd["g6_fingerprint"].get("class")))
+
         print("[G5] baseline...", flush=True)
         gd["g5_baseline"] = g5_baseline(gd, args.baseline_anterior)
         print("    class=%s" % (gd["g5_baseline"].get("class")))
 
         ver = compute_verdicts(bool(gd["g0_anchor"]["match"]),
-                               gd["g3_ws"], gd["g4_boot"])
+                               gd["g3_ws"], gd["g4_boot"],
+                               gd.get("g6_fingerprint"))
         gd["verdict"] = ver
     finally:
         _purge_session_cookie()
@@ -649,7 +800,7 @@ def main() -> int:
                                       gd["verdict"],
                                       gd["g5_baseline"])
     print("\n========= VEREDICTO =========")
-    for k in ("anchor", "B(i)_ws", "B(ii)_sessao",
+    for k in ("anchor", "B(i)_ws", "B(ii)_sessao", "FP_UI",
               "spike_closed_green", "spike_closed_via_fallback"):
         print("  %-26s %s" % (k + ":", ver[k]))
     print("\n  pacote  : %s" % zippath)

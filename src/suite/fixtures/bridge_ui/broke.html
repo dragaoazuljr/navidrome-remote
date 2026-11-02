@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NDR Bridge UI — broken-generation hook (fixture, A9)</title>
+<script>
+/* A9 SIMULATION OF A BROKEN HOOK.
+ * The anchor build (v0.64.2) identifies this SPA generation by the
+ * __APP_CONFIG__.version OBJECT KEY (black-box proof: G0 reads exactly
+ * that shape in the published HTML; the bridge's feature-probe relies
+ * on it too). This fixture pretends to be a NEXT generation whose
+ * developers renamed the identity key to `build` (a routine version
+ * change breaking the contract). The declared version is therefore
+ * UNVERIFIABLE for the anchor: the bridge must classify UNKNOWN,
+ * refuse to intercept (player 100% native), WARN (console) and BEACON
+ * (feature-drift) — and the page must keep working.
+ * The player below plays through a FRESH delivery channel
+ * (/rest/stream2) — also outside the anchor's stream RX — the way a
+ * regenerated SPA would ship its audio. */
+window.__APP_CONFIG__ = {build: "0.65.0-rc1", flavor: "web"};
+</script>
+</head>
+<body>
+<div id="bar" style="padding:8px;background:#111;color:#eee;">
+  <button id="bplay" aria-label="Play" title="Play">&#9658;</button>
+  <span id="np" style="margin-left:12px;"></span>
+</div>
+<audio id="ndp" preload="auto"></audio>
+<script>
+(function () {
+  "use strict";
+  /* Synthetic session — same derivation as main.html (page-local only;
+   * the value never leaves the page). With a session AND a
+   * non-verifiable generation, the bridge must STILL refuse
+   * (acceptance: warning + native engage, player never broken). */
+  function b64url(o) {
+    var s = JSON.stringify(o);
+    return btoa(unescape(encodeURIComponent(s)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  var PAYLOAD = {"username": "fxt_alice", "sub": "fxt_alice",
+                 "iat": 1793200000, "exp": 1793805600};
+  var TOKEN = b64url({"alg": "none", "typ": "JWT"}) + "." +
+              b64url(PAYLOAD) + "." + "fakesigfakesig";
+  localStorage.setItem("token", TOKEN);
+  localStorage.setItem("is-authenticated", "true");
+  window.__TOKEN__ = TOKEN; /* page-local inspection only */
+
+  var pl = document.getElementById("ndp"),
+      np = document.getElementById("np"),
+      bp = document.getElementById("bplay");
+  var FAKE_T = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  var FAKE_S = "bbbbbbbbbbbb";
+  /* THE OTHER CHANNEL of this hypothetical generation: a route that
+   * does NOT match the anchor's stream RX (see bridge
+   * STREAM_PATH_RX) — the audio the new UI would natively play. */
+  function load() {
+    np.textContent = "B1";
+    pl.setAttribute("data-nvr-sync-id", "");
+    pl.src = "/rest/stream2?id=B1&u=fxt_user&t=" + FAKE_T +
+             "&s=" + FAKE_S + "&v=2.0.0&c=navidrome2";
+    pl.play().catch(function () {});
+  }
+  pl.addEventListener("loadeddata", function () {
+    pl.play().catch(function () {});
+  });
+  bp.addEventListener("click", function () {
+    if (pl.paused || !pl.currentSrc) {
+      load();
+    } else {
+      pl.pause();
+    }
+  });
+  /* Test seam — same discipline as main.html: real click, real events. */
+  window.__FIX__ = {
+    pressPlay: function () { bp.click(); },
+    state: function () {
+      return JSON.stringify({
+        np: np.textContent,
+        paused: pl.paused,
+        cur: (pl.currentSrc || "").slice(0, 90),
+        muted: pl.muted,
+        bridge: !!window.__NVRA_BRIDGE__,
+        badge: !!document.getElementById("__nvr_bridge_badge")
+      });
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -43,6 +43,7 @@ class BridgeE2ETests(unittest.TestCase):
             chrome = ""
             report_dir = ""
             keep_going = True
+            verbose = False
         loop = asyncio.new_event_loop()
         try:
             rc = loop.run_until_complete(

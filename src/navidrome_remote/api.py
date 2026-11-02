@@ -105,6 +105,20 @@ URL, no token, no salt, no credential of any kind crosses to a client:
 * `play` no longer echoes the composed URL (M0' `file_set` removed);
 * `queue` exchanges ids/titles only; URLs are rebuilt server-side;
 * the spy records names, never values (M0' rule, preserved).
+*
+* A8 — CONFLICT POLICY (last-write-wins with logging):
+* A UI-plane write (the bridge marks its traffic with the header
+* X-NVR-Plane: ui) racing an EXTERNAL or OPERATOR-plane command on
+* the same RESOURCE CLASS (track / transport / seek / volume /
+* shuffle / repeat) inside CONFLICT_WINDOW_S is resolved by ARRIVAL
+* ORDER — the last write accepted with 200 stands — and is RECORDED
+* on the spy as `plane_conflict` (winner, loser, routes, gap-ms,
+* seq), with a running count exposed on /status (`conflicts`). The
+* marker is AUDIT-GRADE ONLY: spoofable, grants no rights —
+* authorization stays the L0..L3 gate's business. The plane of a call
+* is its REQUEST-OWN attribute (computed per request in `handle()`,
+* never instance state) so concurrent requests cannot overwrite each
+* other's attribution mid-flight (A8.x, found by the T18 cold-run).
 """
 
 from __future__ import annotations
@@ -188,11 +202,43 @@ EXPECTED_ROUTES = (
 )
 
 
+# ---------------------------------------------------------------- A8 —
+# CONFLICT LEDGER: the last-write-wins conflict log (card A8 acceptance
+# (2): "Conflito simultaneo (UI vs comando externo) = last-write-wins
+# COM log."). A write is considered ACCEPTED (a potential WINNER) iff it
+# is dispatched with HTTP 200 — every success in this API is a 200
+# `ok:true`; explicit 503s (engine-idle) and 4xx rejections are NOT wins.
+# Resource classes: two writes fight over the same musical object when
+# they address the SAME class. `track` lumps play/queue/next/prev (they
+# all decide "what plays"); transport lumps pause/resume/stop (the
+# play-state machine); seek/volume/shuffle/repeat are themselves.
+CONFLICT_WINDOW_S = 3.0  # the card says "simultaneo": races inside the
+                         # widest visible intent cadence + margin
+_WRITE_ROUTES = frozenset({
+    ("/api/v1/queue", "POST"), ("/api/v1/play", "POST"),
+    ("/api/v1/pause", "POST"), ("/api/v1/resume", "POST"),
+    ("/api/v1/next", "POST"), ("/api/v1/prev", "POST"),
+    ("/api/v1/previous", "POST"), ("/api/v1/stop", "POST"),
+    ("/api/v1/seek", "POST"), ("/api/v1/shuffle", "POST"),
+    ("/api/v1/repeat", "POST"), ("/api/v1/volume", "POST"),
+})
+_CONFLICT_CLASSES = {
+    "/api/v1/play": "track", "/api/v1/queue": "track",
+    "/api/v1/next": "track", "/api/v1/prev": "track",
+    "/api/v1/previous": "track",
+    "/api/v1/pause": "transport", "/api/v1/resume": "transport",
+    "/api/v1/stop": "transport",
+    "/api/v1/seek": "seek",
+    "/api/v1/volume": "volume",
+    "/api/v1/shuffle": "shuffle",
+    "/api/v1/repeat": "repeat",
+}
+
 class Api:
     AVAILABLE = tuple("%s %s" % (m, p) for m, p in EXPECTED_ROUTES)
 
     def __init__(self, cfg, spy: Spy, engine, store: "QueueStore | None" = None,
-                 gateway=None):
+                 gateway=None, clock: "callable | None" = None):
         self.cfg = cfg
         self.spy = spy
         self.engine = engine
@@ -209,6 +255,19 @@ class Api:
             from .gateway import SessionGate
             gateway = SessionGate(cfg, spy)
         self.gateway = gateway
+        # A8 — the LAST-WRITE-WINS ledger (one entry per resource class:
+        # (plane, monotonic-timestamp, route)). The clock is INJECTABLE
+        # so the 3 s conflict window is exercisable without sleeping.
+        self._clock = clock if clock is not None else time.monotonic
+        self._ledger = {}
+        self._conflict_seq = 0
+        self.plane_conflicts = 0
+        # A8.x — the plane is computed PER REQUEST inside `handle()` and
+        # passed to `_conflict_note()`. It is deliberately NOT instance
+        # state: this service handles concurrent requests, and caching
+        # the plane here let an interleaved request (e.g. the bridge's
+        # own 1 s status poll) steal the attribution between a write's
+        # dispatch and its ledger note (found by the A8 cold-run, T18).
 
     # ------------------------------------------------------------ dispatcher
     async def handle(
@@ -267,8 +326,25 @@ class Api:
                                separators=(",", ":"), ensure_ascii=False)
             return (405, "application/json; charset=utf-8", body.encode())
 
+        # A8 — PLANE attribution for the conflict log (audit grade only:
+        # the marker grants nothing — authorization stays L0..L3). The
+        # bridge marks UI-originated traffic; the static-token operator
+        # plane is known by construction; the rest is external.
+        # A8.x: the value is REQUEST-LOCAL (never instance state) so a
+        # concurrent request cannot rewrite it mid-flight.
+        hdr_plane = (headers.get_first("x-nvr-plane") or "").strip().lower()
+        plane = (
+            "ui" if hdr_plane == "ui"
+            else ("op" if static_exempt else "ext")
+        )
+
         try:
             resp = await self._dispatch(method, path, payload)
+            if resp is not None and ((path, method) in _WRITE_ROUTES) \
+                    and resp[0] == 200:
+                # A8: this write WON (dispatched 200) — note any race,
+                # with this CALL's own plane (request-local; see above).
+                await self._conflict_note(path, plane)
             if resp is not None:
                 return resp
         except EngineDown as exc:
@@ -370,6 +446,45 @@ class Api:
             return await self._spy_beacon(payload)
         return None
 
+    async def _conflict_note(self, path: str, plane: str) -> None:
+        """A8 — LAST-WRITE-WINS with logging.
+
+        Called ONLY after a write was accepted (dispatched 200) — the
+        arrival-order policy is already EFFECTIVE by then; this method
+        RECORDS the race on the spy: if a DIFFERENT-plane write on the
+        same resource class landed within CONFLICT_WINDOW_S, that is a
+        conflict (winner = this call, loser = the previous one). The
+        marker is ATTRIBUTION, never authorization.
+
+        A8.x — `plane` is this CALL's own attribution, threaded in from
+        `handle()` as a REQUEST-LOCAL value. Reading it back from shared
+        instance state was unsafe: this service serves concurrent
+        requests, and a stray one (e.g. the bridge's own 1 s status
+        poll) landing between this write's dispatch and its note could
+        rewrite the cached plane — silently dropping the conflict the
+        card demands be logged (found by the A8 cold-run, scenario T18).
+        """
+        cls = _CONFLICT_CLASSES.get(path)
+        if cls is None:
+            return
+        now = self._clock()
+        prev = self._ledger.get(cls)
+        if prev is not None and prev[0] != plane \
+                and (now - prev[1]) <= CONFLICT_WINDOW_S:
+            self._conflict_seq += 1
+            self.plane_conflicts += 1
+            await self.spy.event(
+                "plane_conflict",
+                winner=plane,
+                loser=prev[0],
+                resource=cls,
+                route=path,
+                prev_route=prev[2],
+                gap_ms=int(max(0.0, (now - prev[1])) * 1000),
+                seq=self._conflict_seq,
+            )
+        self._ledger[cls] = (plane, now, path)
+
     # --------------------------------------------------------------- handlers
     async def _health(self):
         return _json(
@@ -404,6 +519,7 @@ class Api:
             return _json(200, {
                 "phase": PHASE, "engine": "down", "idle": True,
                 "play": None, "playing": False, "paused": False,
+                "conflicts": self.plane_conflicts,
                 "shuffle": False,
                 "repeat": self.store.settings.get("repeat", "off"),
                 "volume": None,
@@ -439,6 +555,7 @@ class Api:
                 props.get("loop-file"), props.get("loop-playlist")),
             "volume": vol_i,
             "queue": self._queue_view(False, engine_size=qsize),
+            "conflicts": self.plane_conflicts,
         })
 
     def _describe_current(self, props: dict, active: bool) -> "dict | None":

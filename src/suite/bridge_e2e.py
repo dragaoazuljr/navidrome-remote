@@ -25,7 +25,9 @@ transform — i.e. the E2E exercises the exact production pipeline:
           -> controller -> mpv JSON-IPC -> engine (mock)
           <- /status poll <- ...
 
-Scenarios (T1..T15) — see the module tail for the full acceptance map:
+Scenarios (T1..T18) — see the module tail for the full acceptance map
+(T16-T18 = A8: the graceful-degradation powerdowns and the last-write-wins
+conflict log);
 passive/pre-login inertia, play/pause/resume/seek/volume/next/prev/
 stop/shuffle/repeat translation into /api/v1/* with the PAGE'S session,
 engine->UI reverse sync (incl. engine-pushed current-track re-trigger),
@@ -134,7 +136,6 @@ def op_http(method: str, path: str, payload=None, token: str = "",
             return e.code, json.loads(body)
         except ValueError:
             return e.code, {"raw": body}
-
 
 
 # ---------------------------------------------------------------------------
@@ -413,7 +414,8 @@ reason:g('_reason'),
 intents:g('_intents'),
 status:g('_status'),
 stats:g('_stats'),
-shadow:g('_shadow')});
+shadow:g('_shadow'),
+powerdown:g('_powerdown')});
 })()
 """
 
@@ -444,6 +446,31 @@ async def bridge_state(rig: Rig) -> dict:
 async def fix_state(rig: Rig) -> dict:
     s = await jv(FIX_PROBE_JS)
     return s if isinstance(s, dict) else {"raw": s}
+
+
+async def click_element(rig: Rig, selector: str) -> bool:
+    """Dispatch a TRUSTED click (Input.dispatchMouseEvent) at the CENTER
+    of a CSS selector. A8.x rig-fidelity: this Chrome build partitions
+    the localStorage alias between the document's context and CDP
+    eval contexts — a storage mutation typed from an eval evaporates
+    (invisible both ways), while any page-origin code (a click
+    listener, a real user gesture) operates on the storage the bridge
+    itself reads. Trusted-input clicks are the faithful stand-in for
+    the user's finger: they execute the element's listeners in the
+    document's own context, end to end."""
+    xy = await jv("(function () { var el = document.querySelector(%r);"
+                  " if (!el) { return null; }"
+                  " var r = el.getBoundingClientRect();"
+                  " return JSON.stringify([r.left + r.width / 2,"
+                  " r.top + r.height / 2]); })()" % selector)
+    if not xy:
+        return False
+    cx, cy = (float(xy[0]), float(xy[1]))
+    for phase in ("mousePressed", "mouseReleased"):
+        await rig.tab.collect("Input.dispatchMouseEvent", {
+            "type": phase, "x": cx, "y": cy,
+            "button": "left", "buttons": 1, "clickCount": 1})
+    return True
 
 
 async def wait_until(pred, *, timeout_s: float = 10.0, poll_s: float = 0.2) -> bool:
@@ -552,6 +579,52 @@ async def wait_stable(rig: Rig, cond, *, samples: int = 3,
             good = 0
         await asyncio.sleep(gap_s)
     return False
+
+
+async def _sanitize_origin_session(rig: Rig) -> None:
+    """Scene prelude (A8.x R1): park a KNOWN-GOOD ordinary session in
+    the SHARED per-origin localStorage before the scene's document
+    loads — via a dedicated page-origin helper document
+    (fixtures/sess.html?do=login: the same channel T16's own re-login
+    uses, immune to the eval-severance this Chrome build imposes).
+
+    Why: the origin's storage SURVIVES navigation. T12's in-scene swap
+    to the service account leaves the SERVICE token parked there; a
+    later scene that presupposes an ordinary session (T16/T17/T18)
+    otherwise starts its FIRST bridge poll on whatever the predecessor
+    left behind — and the L2 gate decision made at that first poll is
+    STICKY by design (the service account must never be intercepted
+    again in that document). The failure is ORDER-DEPENDENT (the
+    T12->T16 four-cassette is red, the T1..T18 sequence can be green
+    because T14's own document re-seeds the ordinary token) — exactly
+    the non-determinism the A8 acceptance bars. Parking the ordinary
+    session first makes every such scene start from the same state in
+    any selection/order, at a cost of ~2 s.
+    """
+    loop = asyncio.get_running_loop()
+    helper = rig.drv.new_tab("%s/fixtures/sess.html?do=login" % rig.svc,
+                             loop)
+    await helper.start()
+    parked = False
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 8:
+        try:
+            title = await helper.eval("(function(){return document.title;})()")
+        except Exception:
+            title = ""
+        if title == "sess:login-ok":
+            parked = True
+            break
+        await asyncio.sleep(0.2)
+    if not parked:
+        # Non-fatal by design: the scene proceeds and its own first
+        # assertion speaks. Loud, though, so the order-dependence never
+        # hides in the details column again.
+        print("[bridge-e2e] aviso: sessão ordinária não confirmada antes "
+              "da cena (sess.html?do=login sem 'sess:login-ok' em 8 s)",
+              file=sys.stderr)
+    await asyncio.sleep(0.3)
+    await helper.aclose()
 
 
 # ---------------------------------------------------------------------
@@ -781,7 +854,7 @@ async def t7_next_prev(rig: Rig) -> Case:
     # current track — the bridge's same-id echo guard swallows this swap,
     # no /play ships) and suspend the fixture's 'ended' auto-advance, so
     # each click below is the sole source of a src swap.
-    await jv("__FIX__.holdEnded(true); __FIX__.prime('S1');")
+    await jv("(__FIX__.holdEnded(true), __FIX__.prime('S1'))")
     await asyncio.sleep(0.4)
     pn = await jv("Date.now()")
     rig.tab.mark()
@@ -866,7 +939,6 @@ async def t9_repeat_cycle(rig: Rig) -> Case:
     c.check("third step returns to off", ok3 and okst,
             "wait_intent=" + str(ok3) + " engine-off=" + str(okst))
     return c
-
 
 
 async def t10_stop(rig: Rig) -> Case:
@@ -989,6 +1061,11 @@ async def t12_gate_403_service_account(rig: Rig) -> Case:
     c = Case("T12", "gate 403 (service account) AFTER a synthetic "
                     "re-trigger: deterministic in-scene ordering + ADR-004 "
                     "native restoration with zero synthetic traces")
+    # A8-Estabilizar: same origin-sanitize prelude as T16-T18. T12 fails
+    # ONLY after its predecessor scenes (solo it is green) — the shared
+    # per-origin storage the watchers read must start from the known-good
+    # ordinary session regardless of what the sequence left behind.
+    await _sanitize_origin_session(rig)
     await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
     rig.tab.mark()
     ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
@@ -1126,6 +1203,66 @@ async def t13_anchor_drift(rig: Rig) -> Case:
     return c
 
 
+async def t19_broken_hook_version_change(rig: Rig) -> Case:
+    """A9 (ACEITE): a VERSAO DA UI mudou e o contrato da geracao caiu
+    (o fixture broke.html publica __APP_CONFIG__ SEM a chave `version`
+    que a ancora reconhece). O hook esta PARTIDO: o bridge deve
+    classificar UNKNOWN, NUNCA interceptar (player 100% nativo),
+    AVISAR (console.warn visivel em devtools) e BEACON
+    (feature-drift) — sem quebrar o player."""
+    c = Case("T19", "version changed (fixture): hook broken -> warning + "
+                    "NATIVE mode, player never broken (A9)")
+    await rig.tab.navigate(f"{rig.svc}/fixtures/broke.html", timeout=15)
+    rig.tab.mark()
+    # janela de TEMPO deste caso: o buffer de console do CDP e
+    # compartilhado pelas 19 paginas da rodada e sofre trim; filtramos
+    # por timestamp do ultimo navegar (o nav_log registra a intencao
+    # ANTES das console-API calls da nova pagina).
+    nav_ts = max(n.get("ts", 0) for n in rig.tab.nav_log
+                 if "broke.html" in str(n.get("intent", "")))
+    ok = await wait_bridge(
+        rig, lambda b: b.get("state") == "degraded", timeout_s=15)
+    bs = await bridge_state(rig)
+    c.check("state == degraded", ok, str(bs.get("state")))
+    c.check("reason == hook-mismatch (broken hook, NOT drift)",
+            (bs.get("reason") or "") == "hook-mismatch",
+            str(bs.get("reason")))
+    cv = await jv("__NVRA_BRIDGE__._t._classify()")
+    c.check("_t._classify() => k == unknown (feature-probe negative)",
+            cv.get("k") == "unknown", str(cv))
+    # ACEITE: o aviso tem que aparecer no CONSOLE (devtools do browser)
+    warns = [m for m in rig.tab.console
+             if m.get("ts", 0) >= nav_ts
+             and m.get("level") in ("warning", "warn")
+             and "NDR-bridge" in str(m.get("text", ""))]
+    c.check("console.warn fired (aviso visible para quem opera a pagina)",
+            len(warns) >= 1, str(warns[:1]))
+    # o BEACON feature-drift tem que cruzar o espiao (gate A2 correlata)
+    evs = [e for e in rig.spy_events() if e.get("beacon") == "feature-drift"]
+    c.check("feature-drift beacon logged in the spy", len(evs) >= 1,
+            str(evs[:1]))
+    # mesma vara do T13: zero trafego de API alem do pad de spy gatado
+    page_reqs = rig.tab.requests_since_mark()
+    non_spy = [r for r in page_reqs
+               if str(r.get("url", "")).startswith("/api/v1/")
+               and not str(r.get("url", "")).endswith("/api/v1/spy")]
+    c.check("NO /api/v1/* intent/status traffic (never engaged)",
+            non_spy == [],
+            f"{len(non_spy)}: {[r['url'] for r in non_spy][:5]}")
+    # a pagina CONTINUA FUNCIONANDO: o player toca no CANAL NOVO da
+    # geracao simulada (/rest/stream2), nativo, sem mute — nunca quebra.
+    await jv("__FIX__.pressPlay()")
+    await asyncio.sleep(1.5)
+    fx = await fix_state(rig)
+    cur = fx.get("cur", "")
+    native_new_chan = ("stream2" in cur
+                       and re.search(r"[?&]id=", cur) is not None)
+    c.check("native playback of the NEW channel (stream2) unaffected",
+            native_new_chan and fx.get("muted") is False,
+            f"cur={cur[:90]} muted={fx.get('muted')}")
+    return c
+
+
 async def t14_recovery_reauth(rig: Rig) -> Case:
     c = Case("T14", "re-auth: a NEW session (new page) engages again and "
                     "controls the engine")
@@ -1204,6 +1341,332 @@ async def t15_invariants_scan(rig: Rig) -> Case:
     return c
 
 
+async def t16_logout_mid_session(rig: Rig) -> Case:
+    """A8 (PD-1): a session that DIES while engaged (logout) must switch
+    the SBC control block OFF IMMEDIATELY (<= the perpetual-watch 1 s),
+    SILENTLY (no badge: the login surface stays 100% native), handing
+    the player back; a re-login re-engages (soft re-join)."""
+    c = Case("T16", "logout mid-session -> SILENT powerdown (session-"
+                    "lost) -> 100% native; re-login re-engages (A8)")
+    await _sanitize_origin_session(rig)
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged with the ordinary session", ok,
+            str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    # lively state: engine holds a track (the music that must NOT die)
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+    # Baseline of the element BEFORE the logout (idle by design in this
+    # drill — no play gesture was sent): that exact state is what must
+    # SURVIVE the logout, untouched.
+    cur_before = (await fix_state(rig)).get("cur", "")
+    # THE LOGOUT: A8.x (AD-3) — a session is shared per-origin across
+    # tabs; this rig's headless Chrome severs CDP eval contexts from
+    # the live document — a storage write executed from an eval
+    # evaporates. So a SECOND tab (whose own script, mirroring a real
+    # Navidrome SPA logout, is page-origin) clears the shared
+    # origin storage. The bridge in the MAIN tab discovers it through
+    # its perpetual 1 s watch — the genuine multi-tab session-loss
+    # condition, and the only channel proven to reach the storage the
+    # watcher reads (page-origin writes persist; eval-origin writes
+    # evaporate in this build — see sess.html and the A8 addendum).
+    loop = asyncio.get_running_loop()
+    sess_tab = rig.drv.new_tab(
+        f"{rig.svc}/fixtures/sess.html?do=logout", loop)
+    await sess_tab.start()
+    await asyncio.sleep(2.0)
+    ok = await wait_bridge(rig, lambda b: b.get("powerdown") == "session-lost",
+                           timeout_s=12)
+    bs = await bridge_state(rig)
+    c.check("powerdown class == 'session-lost' (caught by the watcher, "
+            "not the next 401)", ok, str(bs.get("powerdown")))
+    c.check("state == passive", (bs.get("state") or "") == "passive",
+            str(bs.get("state")))
+    c.check("SILENT: no degradation reason", not (bs.get("reason")),
+            str(bs.get("reason")))
+    fx = await fix_state(rig)
+    c.check("SILENT: no badge on the (former) login surface",
+            fx.get("badge") is False, str(fx.get("badge")))
+    cur = fx.get("cur", "")
+    # A8.x — ADR-006, corrected semantics for the session-lost class:
+    # a LOGOUT must never touch the user's player. The element is left
+    # EXACTLY as it was (no synthetic feed, no real-URL promotion, no
+    # mute flip). Promoting an element that never owned a real stream
+    # to a minted URL was the flawed reading — the 'hand the audio
+    # back' obligation belongs to the sbc-offline class (T17), where
+    # the element DID own the real stream.
+    is_native = ("data:" not in cur[:5]
+                 and "__nvr_synth" not in cur
+                 and cur == cur_before)
+    c.check("player LEFT 100% native and unchanged (never broken)",
+            is_native,
+            f"cur_before={cur_before[:60]} cur={cur[:60]} "
+            f"muted={fx.get('muted')}")
+    c.check("NO synthetic residue (data-nvr-sync-id purged)",
+            fx.get("syncId") in (None, ""), str(fx.get("syncId")))
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("the MUSIC DID NOT DIE: engine still holds S1 "
+            "(the powerdown touches no engine state)",
+            st == 200 and (body.get("play") or {}).get("id") == "S1",
+            str(body.get("play")))
+    # RE-LOGIN: the session reappears — the SAME second tab parks it
+    # again (page-origin write to the shared origin storage) -> the
+    # perpetual watch sees it and soft re-joins.
+    await sess_tab.navigate(
+        f"{rig.svc}/fixtures/sess.html?do=login", timeout=15)
+    await asyncio.sleep(2.0)
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    bs = await bridge_state(rig)
+    stats = bs.get("stats") or {}
+    c.check("re-login re-engaged the bridge (soft re-join)", ok,
+            str(bs.get("state")))
+    c.check("powerdown cleared after re-join",
+            bs.get("powerdown") in (None, ""), str(bs.get("powerdown")))
+    c.check("stats: >=1 powerdown, >=1 recovery recorded",
+            (stats.get("powerdowns") or 0) >= 1
+            and (stats.get("recoveries") or 0) >= 1
+            and (stats.get("engagements") or 0) >= 2,
+            str(stats))
+    return c
+
+
+async def t17_blackout_handback(rig: Rig) -> Case:
+    """A8 (PD-2): the SBC's transport BLACKOUT sustained past the handover
+    threshold (HANDOVER_MS = 20 s) hands the AUDIO BACK TO THIS BROWSER
+    (100% native, the user keeps hearing the music) with the SBC badge
+    family up; restoring the service re-joins through the re-probe."""
+    c = Case("T17", "sustained SBC blackout (>20 s) -> powerdown "
+                    "(sbc-offline): audio handed back to the browser; "
+                    "service restored -> re-join (A8)")
+    await _sanitize_origin_session(rig)
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged", ok, str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+    # A8.x — the user PLAYED the real stream natively before the
+    # takeover: pressing play loads S1 into the element THROUGH THE
+    # PROXY (a genuine upstream fetch); the bridge arms it as a silent
+    # mirror REMEMBERING that real URL. The remembered URL is the very
+    # thing the handback restores when the SBC dies — an element that
+    # only knew the synthetic feed has nothing real to restore (that
+    # residual case is logged by the bridge's handbackPending(), not
+    # faked with a minted credential URL).
+    await jv("(void window.__FIX__.pressPlay())")
+    await asyncio.sleep(1.5)
+    # THE BLACKOUT: kill the service PROCESS (polls die as transport
+    # failures). The fake engine + upstream KEEP RUNNING: the blackout
+    # is the SBC's own service, not the family network.
+    try:
+        rig.svc_proc.kill()
+        rig.svc_proc.wait(timeout=5)
+    except Exception as exc:
+        c.check("service killed for the blackout", False, str(exc))
+        return c
+    c.note("service process %d killed for the blackout drill"
+           % (rig.svc_proc.pid or 0))
+    # sustain past the 20 s handover threshold (the 15 s hint shows
+    # first and stays up until the handback — the A7 contract)
+    ok = await wait_bridge(rig, lambda b: b.get("powerdown") == "sbc-offline",
+                           timeout_s=60, poll_s=1.0)
+    bs = await bridge_state(rig)
+    c.check("powerdown class == 'sbc-offline' after the sustained "
+            "blackout", ok, str(bs.get("powerdown")))
+    c.check("state == degraded (the SBC badge family stays up)",
+            (bs.get("state") or "") == "degraded", str(bs.get("state")))
+    c.check("reason names sbc-offline",
+            (bs.get("reason") or "") == "sbc-offline",
+            str(bs.get("reason")))
+    fx = await fix_state(rig)
+    c.check("explanatory badge visible (family informed, player spared)",
+            fx.get("badge") is True, str(fx.get("badge")))
+    # A8.x (R1) — bounded CONVERGENCE for the handback. The promotion
+    # (remembered real URL + un-mute) is stitched in a tick AFTER the
+    # powerdown announcement, and the element's LOAD has to SETTLE
+    # before currentSrc reads the promoted URL back. The old single
+    # immediate read raced that settlement and failed HEALTHY runs
+    # with cur='' while the native fetch was already in flight
+    # (observed 2026-11-01). The acceptance is UNCHANGED — the
+    # element must end on the real stream, un-muted — only the
+    # observation stops assuming an instantaneous handover.
+    async def _handed_back() -> bool:
+        f = await fix_state(rig)
+        cu = str(f.get("cur", ""))
+        return ("/rest/stream" in cu and "data:" not in cu[:5]
+                and "__nvr_synth" not in cu and f.get("muted") is False)
+    settled = await wait_until(_handed_back, timeout_s=20, poll_s=0.3)
+    fx = await fix_state(rig)
+    cur = fx.get("cur", "")
+    is_native = ("data:" not in cur[:5] and "__nvr_synth" not in cur
+                 and "/rest/stream" in cur
+                 and re.search(r"[?&]id=", cur) is not None)
+    c.check("AUDIO HANDED BACK: element restored to the REAL stream "
+            "un-muted (the user keeps HEARING the music)",
+            settled and is_native and fx.get("muted") is False,
+            "cur=%s muted=%s" % (cur[:80], fx.get("muted")))
+    # The native-fetch VERDICT runs BEFORE the revive (sealed A8
+    # semantics, T16-Estabilizar): the proof of "genuinely playable" is
+    # the pre-kill pressPlay fetch PLUS the handback load that succeeded
+    # AGAINST THE UPSTREAM during the blackout itself — the upstream
+    # stays alive by design (the blackout is the SBC's service only),
+    # so a sealed asset with no retry loop already proves playability
+    # here without depending on product-side changes.
+    reqs = rig.stream_requests()
+    c.check("the restored stream WAS fetched natively from the "
+            "upstream (genuinely playable)", len(reqs) >= 1,
+            "%d stream requests" % len(reqs))
+    # RECOVERY: bring the service BACK on the same port; the 30 s
+    # re-probe re-joins on the first 200 (the page session is valid).
+    rig.svc_proc = None
+    rig.start_service()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=75, poll_s=2.0)
+    bs = await bridge_state(rig)
+    c.check("re-probe re-joined on the restored service (soft re-join)",
+            ok, str(bs.get("state")))
+    c.check("powerdown cleared after re-join",
+            bs.get("powerdown") in (None, ""), str(bs.get("powerdown")))
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("the engine is intact (blackout touched no engine state)",
+            st == 200, str(body)[:120])
+    return c
+
+
+async def t18_plane_conflict_last_write_wins(rig: Rig) -> Case:
+    """A8 (acceptance 2): a UI-plane write (bridge, marked
+    X-NVR-Plane: ui) racing an EXTERNAL command (no marker) on the same
+    resource inside the window -> LAST-WRITE-WINS by arrival order,
+    LOGGED on the spy (plane_conflict) and COUNTED on /status."""
+    import urllib.request as _u
+    import urllib.error as _ue
+    c = Case("T18", "race UI x external on the same resource inside the "
+                    "window: last-write-wins, LOGGED (plane_conflict) and "
+                    "COUNTED on /status (A8)")
+    await _sanitize_origin_session(rig)
+    await rig.tab.navigate(f"{rig.svc}/fixtures/main.html", timeout=15)
+    rig.tab.mark()
+    ok = await wait_bridge(rig, lambda b: b.get("state") == "engaged",
+                           timeout_s=15)
+    c.check("bridge engaged", ok, str((await bridge_state(rig)).get("state")))
+    if not ok:
+        return c
+    await _seed_queue(rig)
+    await _wait_track(rig, "S1", timeout_s=20)
+
+    def _plain_post(path: str, payload: dict, bearer: str) -> "tuple[int, dict]":
+        """EXTERNAL plane: a nav-session call WITHOUT the X-NVR-Plane
+        marker (what an app/CLI would do)."""
+        data = json.dumps(payload, separators=(",", ":")).encode()
+        req = _u.Request(rig.svc + path, data=data, method="POST")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", "Bearer " + bearer)
+        try:
+            with _u.urlopen(req, timeout=10) as r:
+                body = r.read().decode("utf-8", "replace")
+                return r.status, json.loads(body) if body else {}
+        except _ue.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            try:
+                return e.code, json.loads(body)
+            except ValueError:
+                return e.code, {"raw": body}
+        except (_u.URLError, TimeoutError, OSError) as exc:
+            # A8.x (R1): transport-class failure (connection refused /
+            # reset / the service's event loop wedged mid-handshake).
+            # Reported, NOT raised: the caller decides between one
+            # bounded retry and a diagnosed scene failure.
+            return (None, {"transport-error":
+                           type(exc).__name__ + ": " + str(exc)[:120]})
+
+    # 1) THE UI-PLANE WRITE: the bridge's own write path (doFetch marks
+    #    X-NVR-Plane: ui). Fired through the inspection seam _api —
+    #    the SAME production path the sliders use, minus the gesture
+    #    heuristics. (void: the seam returns a Promise — never evaluated
+    #    in-page, no serialization.)
+    # A8.x (R1) — PRECONDITION: the service must be SERVING right now.
+    # A dead or wedged event loop fails the scene FAST with a pointed
+    # diagnosis instead of melting into a 30 s-per-assertion timeout
+    # storm (the 2026-11-01 T17->T18 cascade looked exactly like that).
+    t_liv = time.monotonic()
+    liv_ok = False
+    for _ in range(3):
+        try:
+            st_h, _bh = op_http("GET", "/api/v1/health", svc=rig.svc,
+                                token=rig.op_token)
+            if st_h == 200:
+                liv_ok = True
+                break
+        except Exception:
+            pass
+        await asyncio.sleep(1.0)
+    if not liv_ok:
+        c.check("service responsive before the race (precondition)",
+                False,
+                "GET /api/v1/health sem resposta em %.0f s — "
+                "verificar svc.log" % (time.monotonic() - t_liv))
+        return c
+
+    await jv("(void window.__NVRA_BRIDGE__._t._api('/volume', "
+             "{level: 30}))")
+    await asyncio.sleep(1.0)
+    # 2) THE EXTERNAL WRITE: same resource, ~1 s later (well inside the
+    #    3 s conflict window), no marker. It is LAST -> it WINS
+    #    (arrival order).
+    st_ext, body_ext = _plain_post("/api/v1/volume", {"level": 80},
+                                   ALICE_JWT)
+    if st_ext is None:
+        # A8.x (R1): one BOUNDED retry on transport failure only.
+        # Convergent by nature: re-posting the same level 80 cannot
+        # flip the last-write winner (still the external plane), and a
+        # retried write outside the 3 s window does not mint a fresh
+        # plane_conflict — the recorded race stays what it is.
+        st_ext, body_ext = _plain_post("/api/v1/volume", {"level": 80},
+                                       ALICE_JWT)
+    c.check("external write accepted (engine volume -> 80, last-write-"
+            "wins by arrival order)", st_ext == 200,
+            "%s %s" % (st_ext, body_ext))
+    # NOTE: wait_until AWAITs its predicate — a bare sync lambda raises
+    # on await and spins to False silently (found on T18 2026-11-01;
+    # same silent-no-op family as the jv-semicolon incident). The
+    # blocking op runs in a worker thread so the loop never stalls.
+    async def _eng_holds(level: int) -> bool:
+        st, body = await asyncio.to_thread(rig.op, "GET", "/api/v1/status")
+        return st == 200 and body.get("volume") == level
+    ok = await wait_until(lambda: _eng_holds(80), timeout_s=15)
+    c.check("engine holds the LAST write (80)", ok,
+            str(rig.op("GET", "/api/v1/status")[1].get("volume")))
+    # 3) THE LOG: exactly the racers, with winner/loser attribution.
+    evs = [e for e in rig.spy_events()
+           if e.get("event") == "plane_conflict"
+           and e.get("resource") == "volume"
+           and e.get("winner") == "ext"
+           and e.get("loser") == "ui"]
+    c.check("spy LOGGED the race (plane_conflict, winner=ext, "
+            "loser=ui, resource=volume)", len(evs) >= 1,
+            str(evs[-1] if evs else "none")[:200])
+    st, body = rig.op("GET", "/api/v1/status")
+    c.check("/status COUNTS the accumulated conflicts ("
+            "'conflicts' present and >= 1)",
+            st == 200 and isinstance(body.get("conflicts"), int)
+            and body["conflicts"] >= 1,
+            str(body.get("conflicts")))
+    # 4) The UI projection follows the WINNING value.
+    ok = await wait_fix(rig, lambda f: abs(float(f.get("volVal", 0)) - 80)
+                        < 1.0, timeout_s=8)
+    c.check("UI volume slider followed the WINNING value (80)", ok,
+            str((await fix_state(rig)).get("volVal")))
+    return c
+
+
 SCENARIOS = [
     ("T1", t1_passive_prelogin),
     ("T2", t2_engage_and_play),
@@ -1220,7 +1683,22 @@ SCENARIOS = [
     ("T13", t13_anchor_drift),
     ("T14", t14_recovery_reauth),
     ("T15", t15_invariants_scan),
+    ("T16", t16_logout_mid_session),
+    ("T17", t17_blackout_handback),
+    ("T18", t18_plane_conflict_last_write_wins),
+    ("T19", t19_broken_hook_version_change),
 ]
+
+
+# A8.x (R1) — HARD per-case budgets. No scenario may run past its line
+# item no matter what happens inside it. Sized at ~1.25x the sum of
+# the case's own bounded waits, so a HEALTHY case always fits and a
+# pathologically stuck one is CUT (recorded as FAIL) instead of eating
+# the round's 15 min budget — the card's "nenhum comando > 300 s" bar,
+# with T17 (the blackout drill) the largest line at 240 s.
+CASE_BUDGET_S = {"T17": 240.0, "T7": 120.0, "T12": 120.0,
+                 "T16": 120.0, "T18": 120.0}
+DEFAULT_CASE_BUDGET_S = 90.0
 
 
 # ---------------------------------------------------------------------
@@ -1313,16 +1791,33 @@ async def _amain(args) -> int:
     for tid, coro_fn in SCENARIOS:
         if wanted and tid not in wanted:
             continue
+        budget = CASE_BUDGET_S.get(tid, DEFAULT_CASE_BUDGET_S)
         t0 = time.monotonic()
         try:
-            case = await coro_fn(rig)
+            case = await asyncio.wait_for(coro_fn(rig), timeout=budget)
+        except asyncio.TimeoutError:
+            # A8.x (R1): the hard watchdog fires (the case's own waits
+            # all have their own smaller budgets; reaching HERE means
+            # the scene itself is the stuck one — cut it loudly).
+            case = Case(tid, "ORÇAMENTO DO CASO EXCEDIDO — cortado pelo "
+                             "watchdog")
+            case.check("caso terminou dentro do orçamento (%gs)" % budget,
+                       False,
+                       "corte do A8.x(R1): cena presumivelmente presa; "
+                       "diagnosticar com svc.log/spy.ndjson")
         except Exception:
             case = Case(tid, f"<exception> {traceback.format_exc(limit=3)}")
             case.check("scenario ran without exception", False,
                        traceback.format_exc(limit=2))
         dt = time.monotonic() - t0
         verdict = "PASS" if case.ok else "FAIL"
-        print(f"  {tid} {verdict}  ({dt:.1f}s)  {case.name}")
+        # A8.x (R1): the per-case console line is part of the round's
+        # COMPARED surface — durations and ports vary between rounds,
+        # so they ride in --verbose only. Verdict + name are stable.
+        if args.verbose:
+            print(f"  {tid} {verdict}  ({dt:.1f}s)  {case.name}")
+        else:
+            print(f"  {tid} {verdict}  {case.name}")
         results.append((tid, case))
         if args.keep_going is False and not case.ok and tid in ("T2",):
             print("  (T2 fundamental falhou — interrompendo a sequência)",
@@ -1333,12 +1828,30 @@ async def _amain(args) -> int:
     _write_report(rig, results, chrome)
     print(f"[bridge-e2e] relatório: {report_dir}")
 
+    # A8.x (R1) — DETERMINISM CONTRACT: the machine-compared surface of
+    # a round is this block — per-case verdicts + counts, NO durations,
+    # NO ports, NO timestamps. Two consecutive rounds are IDENTICAL iff
+    # these blocks diff equal (that is the card's "saída idêntica: RC +
+    # contagens"); the rich, volatile detail stays in report.md, which
+    # is never part of the comparison.
+    n_pass = sum(1 for _, cs in results if cs.ok)
+    summary_block = "\n".join(
+        "%s %s" % (tid, "PASS" if cs.ok else "FAIL")
+        for tid, cs in results)
+    summary_block += "\nRESULTADO: pass=%d fail=%d total=%d" % (
+        n_pass, len(results) - n_pass, len(results))
+    with open(os.path.join(report_dir, "SUMMARY.txt"), "w",
+              encoding="utf-8") as fh:
+        fh.write(summary_block + "\n")
+    print("[bridge-e2e] RESUMO DA RODADA (superfície comparada):")
+    print(summary_block)
+
     await rig.teardown()
     fails = [tid for tid, cs in results if not cs.ok]
     if fails:
-        print(f"FALHOU: {','.join(fails)}", file=sys.stderr)
+        print("FALHOU: " + ",".join(fails), file=sys.stderr)
         return 1
-    print(f"OK: {len(results)}/{len(SCENARIOS)} cenários passaram")
+    print("OK: %d/%d cenários passaram" % (len(results), len(results)))
     return 0
 
 
@@ -1463,6 +1976,10 @@ def main() -> int:
     ap.add_argument("--keep-going", action="store_true", default=False,
                     help="continue after a fundamental failure (default: "
                          "stop on T2)")
+    ap.add_argument("--verbose", action="store_true", default=False,
+                    help="include per-case durations on the console "
+                         "(keeps the round's compared surface volatile-"
+                         "free by default — A8.x R1)")
     args = ap.parse_args()
     return asyncio.run(_amain(args))
 
